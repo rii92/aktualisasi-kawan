@@ -1,0 +1,6 @@
+node_modules/
+.wwebjs_auth/
+.wwebjs_cache/
+.env            
+*.log           # Abaikan semua file dengan ekstensi .log
+admin-sanggau-ofat-102bcda8d386
