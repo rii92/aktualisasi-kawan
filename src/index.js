@@ -43,18 +43,31 @@ client.on('auth_failure', msg => {
 });
 
 client.on("message", async (message) => {
+  // update status bot menjadi aktif
+  client.sendPresenceAvailable();  
+  
+  // Memanggil fungsi menyimpan dan menjalankan 
   await saveMessage(message);
+  
+  // update status bot menjadi tidak aktif
+  client.sendPresenceUnavailable();
 });
 
 async function saveMessage(message) {
   try {
+    // ambil data contact
     const contact = await message.getContact();
-    // const chat = await message.getChat();
+    
+    // cek status apa sudah masuk function
     console.log("masuk save message");
 
+    // mengkondisikan jika pesan nya secara personal maka akan di proses oleh bot
     if (message.id.remote.includes("@c.us") && message.type === "chat") {
+      
+      // menggunakan message tempalte dari bot
       await useTemplateMessage(message, contact);
     }
+
   } catch (error) {
     console.log(error);
   }
@@ -62,26 +75,49 @@ async function saveMessage(message) {
 
 async function useTemplateMessage(message, contact) {
     try {
-      // with dialogFlow
-      console.log("mau inisiasi pesan?");
-      // const asnwer = await runDialogFlow(message.body.toLowerCase());
-      client.sendPresenceAvailable();
+      // tanda sudah masuk fungsi useTemplateMessage()
+      console.log("masuk fungsi proses pesan");
 
+      // mengambil pesan untuk bisa menjalankan method khusus dari bot
+      const chat = await message.getChat();
+
+      // mengubah status pesan menjadi centang biru
+      await chat.sendSeen();
+
+      // mengubah status bot menjadi sedang mengetik....
+      await chat.sendStateTyping();
+
+      // memeriksa pesan opsional di spreadsheet
       const response = await cekSpreadsheetMessage(message.body);
+      
+      // inisiasi pesan kosong
       let asnwer = '';
+      
+      // cek pesan di spreadsheet
       console.log(`hasil cek local message = ${response}`)
 
       if(response){
         asnwer = response;
       } else{
+        // cek pesan otomatis dan validasi dengan bot ai
         asnwer = await runDialogFlow(message.body);
       }
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      client.sendPresenceUnavailable();
 
+      // hitung waktu pengetikkan
+      const typingTime = Math.min(asnwer["message"].length / 200 * 60000, 2000);
+
+      // fungsi waktu tunggu ketik
+      await new Promise(resolve => setTimeout(resolve, typingTime));
+
+      // mengirim pesan yang sudah disesuaikan ke user
       client.sendMessage(contact.id._serialized, `${asnwer["message"].toString()}`);
+      
+      // save record pesan dari user
       await axios.get(`${API}?id=${uuidv4()}&no=${contact.id.user}&name=${contact.name}&message=${message.body}&action=save-record-message&status=receive`);
-      await axios.get(`${API}?id=${uuidv4()}&no=6285176957005&name=BotKawan&message=${asnwer["message"]}&action=save-record-message&status=send`); 
+      
+      // save record pesan dari bot
+      await axios.get(`${API}?id=${uuidv4()}&no=6285176957005&name=BotKawan&message=${asnwer["message"]}&action=save-record-message&status=send`);
+       
     } catch (error) {
       console.log(`error kirim pesan: ${error}`);
     }
