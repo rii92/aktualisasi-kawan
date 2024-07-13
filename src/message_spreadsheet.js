@@ -5,7 +5,7 @@ dotenv.config();
 const API = process.env.APIKEY;
 
 const cekSpreadsheetMessage = async (message) => {
-    const responses = await await axios.get(`${API}?action=read`);;
+    const responses = await axios.get(`${API}?action=read`);;
     // console.log(responses);
     const response = responses["data"]["records"].find(r => r.nomor === message);
     return response;
