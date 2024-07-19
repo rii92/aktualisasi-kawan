@@ -8,7 +8,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const runGeminiAi = async (message) => {
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-    const prompt = `Dengan informasi tambahan sumber pencarian google dan web bps sanggau di link (https://sanggaukab.bps.go.id/), Jawablah pesan berikut sebagai admin BPS Kawan Sanggau sebanyak paling banyak maksimal 30 kata: ${message}`;
+    const prompt = `Dengan informasi tambahan sumber pencarian google dan web bps sanggau di link (https://sanggaukab.bps.go.id/), Jawablah pesan berikut sebagai admin BPS Kawan Sanggau dengan ramah sebanyak paling banyak maksimal 30 kata: ${message}`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
