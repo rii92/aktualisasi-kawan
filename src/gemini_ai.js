@@ -12,7 +12,7 @@ const runGeminiAi = async (message) => {
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    const text = `${response.text()} \n\n*Disclaimer:*\nJawaban ini dihasilkan oleh asisten digital. Kami sangat menghargai saran dan kritik Anda untuk pengembangan yang lebih baik. Terima kasih!😁`;
+    const text = `${response.text()} \n\n*Disclaimer:*\nJawaban ini dihasilkan oleh asisten digital (Gemini AI). Kami sangat menghargai saran dan kritik Anda untuk pengembangan yang lebih baik. Terima kasih!😁`;
     console.log(text);
     return text;
 }
