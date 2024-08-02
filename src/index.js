@@ -25,6 +25,9 @@ client.on("qr", (qr) => {
 
 client.on("ready", async () => {
   console.log("Client is ready!");
+
+  // Menandai waktu saat bot siap
+  client.readyTimestamp = new Date();
 });
 
 client.on("authenticated", () => {
@@ -36,16 +39,9 @@ client.on("auth_failure", (msg) => {
 });
 
 client.on("message", async (message) => {
-
-  // cek tanggal hari ini dan pesan yang terkirim dalam integer
-  let today = new Date().setHours(0, 0, 0, 0);
-  let messageDate = new Date(message.timestamp * 1000).setHours(0, 0, 0, 0);
-  
-  // cek tanggal hari ini dan pesan yang terkirim dalam string
-  // let today = new Date().toLocaleDateString();
-  // let messageDate = new Date(message.timestamp * 1000).toLocaleDateString();
-
-  if (messageDate === today) {
+  // Memeriksa apakah pesan diterima setelah bot siap
+  if (message.timestamp * 1000 > client.readyTimestamp.getTime()) {
+    // Proses pesan di sini
     // update status bot menjadi aktif
     client.sendPresenceAvailable();
 
@@ -54,6 +50,8 @@ client.on("message", async (message) => {
 
     // update status bot menjadi tidak aktif
     client.sendPresenceUnavailable();
+  } else {
+    console.log("Pesan lama diabaikan.");
   }
 });
 
