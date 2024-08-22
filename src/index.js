@@ -26,8 +26,11 @@ client.on("qr", (qr) => {
 client.on("ready", async () => {
   console.log("Client is ready!");
 
-  // Menandai waktu saat bot siap
-  client.readyTimestamp = new Date();
+  // Menandai waktu saat bot siap dengan tingkat jam
+  const now = new Date();
+  // Membuat string dengan format YYYY-MM-DDTHH:00:00.000Z
+  const hourOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 0, 0, 0);
+  client.readyTimestamp = hourOnly;
 });
 
 client.on("authenticated", () => {
@@ -40,7 +43,7 @@ client.on("auth_failure", (msg) => {
 
 client.on("message", async (message) => {
   // Memeriksa apakah pesan diterima setelah bot siap
-  if (message.timestamp * 1000 > client.readyTimestamp.getTime()) {
+  if (new Date(message.timestamp * 1000).getTime() > client.readyTimestamp.getTime()) {
     // Proses pesan di sini
     // update status bot menjadi aktif
     client.sendPresenceAvailable();
@@ -50,9 +53,9 @@ client.on("message", async (message) => {
 
     // update status bot menjadi tidak aktif
     client.sendPresenceUnavailable();
-  } else {
+} else {
     console.log("Pesan lama diabaikan.");
-  }
+}
 });
 
 async function saveMessage(message) {
