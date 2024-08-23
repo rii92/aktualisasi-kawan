@@ -14,6 +14,7 @@ const client = new Client({
 
 // inisial API KEY Spreadsheet
 const dotenv = require("dotenv");
+const { runDialogFlowSusenas } = require("./dialog_flow_susenas");
 dotenv.config();
 const API = process.env.APIKEY;
 
@@ -25,6 +26,20 @@ client.on("qr", (qr) => {
 
 client.on("ready", async () => {
   console.log("Client is ready!");
+
+  // Menandai waktu saat bot siap dengan tingkat jam
+  const now = new Date();
+  // Membuat string dengan format YYYY-MM-DDTHH:00:00.000Z
+  const hourOnly = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    now.getHours(),
+    0,
+    0,
+    0
+  );
+  client.readyTimestamp = hourOnly;
 });
 
 client.on("authenticated", () => {
@@ -36,16 +51,12 @@ client.on("auth_failure", (msg) => {
 });
 
 client.on("message", async (message) => {
-
-  // cek tanggal hari ini dan pesan yang terkirim dalam integer
-  let today = new Date().setHours(0, 0, 0, 0);
-  let messageDate = new Date(message.timestamp * 1000).setHours(0, 0, 0, 0);
-  
-  // cek tanggal hari ini dan pesan yang terkirim dalam string
-  // let today = new Date().toLocaleDateString();
-  // let messageDate = new Date(message.timestamp * 1000).toLocaleDateString();
-
-  if (messageDate === today) {
+  // Memeriksa apakah pesan diterima setelah bot siap
+  if (
+    new Date(message.timestamp * 1000).getTime() >
+    client.readyTimestamp.getTime()
+  ) {
+    // Proses pesan di sini
     // update status bot menjadi aktif
     client.sendPresenceAvailable();
 
@@ -54,6 +65,8 @@ client.on("message", async (message) => {
 
     // update status bot menjadi tidak aktif
     client.sendPresenceUnavailable();
+  } else {
+    console.log("Pesan lama diabaikan.");
   }
 });
 
@@ -67,15 +80,21 @@ async function saveMessage(message) {
 
     // mengkondisikan jika pesan nya secara personal maka akan di proses oleh bot
     if (message.id.remote.includes("@c.us") && message.type === "chat") {
-      // menggunakan message tempalte dari bot
-      await useTemplateMessage(message, contact);
+      // Memeriksa apakah pesan berisi kata "SUSENAS"
+      if (message.body && message.body.toUpperCase().includes("SUSENAS")) {
+        // Jika pesan mengandung "SUSENAS", jalankan fungsi ini
+        await useTemplateMessageKawanSusenas(message, contact);
+      } else {
+        // Jika tidak, jalankan fungsi ini
+        await useTemplateMessageKawan(message, contact);
+      }
     }
   } catch (error) {
     console.log(error);
   }
 }
 
-async function useTemplateMessage(message, contact) {
+async function useTemplateMessageKawan(message, contact) {
   try {
     // tanda sudah masuk fungsi useTemplateMessage()
     console.log("masuk fungsi proses pesan");
@@ -130,6 +149,54 @@ async function useTemplateMessage(message, contact) {
         asnwer["message"]
       }&action=save-record-message&status=send`
     );
+  } catch (error) {
+    console.log(`error kirim pesan: ${error}`);
+  }
+}
+
+async function useTemplateMessageKawanSusenas(message, contact) {
+  try {
+    // tanda sudah masuk fungsi useTemplateMessage()
+    console.log("masuk fungsi proses pesan");
+
+    // mengambil pesan untuk bisa menjalankan method khusus dari bot
+    const chat = await message.getChat();
+
+    // mengubah status pesan menjadi centang biru
+    await chat.sendSeen();
+
+    // mengubah status bot menjadi sedang mengetik....
+    await chat.sendStateTyping();
+
+    let asnwer = "";
+
+    asnwer = await runDialogFlowSusenas(message.body);
+
+    // hitung waktu pengetikkan
+    const typingTime = Math.min((asnwer["message"].length / 200) * 60000, 2000);
+
+    // fungsi waktu tunggu ketik
+    await new Promise((resolve) => setTimeout(resolve, typingTime));
+
+    // mengirim pesan yang sudah disesuaikan ke user
+    client.sendMessage(
+      contact.id._serialized,
+      `${asnwer["message"].toString()}`
+    );
+
+    // save record pesan dari user
+    // await axios.get(
+    //   `${API}?id=${uuidv4()}&no=${contact.id.user}&name=${
+    //     contact.name
+    //   }&message=${message.body}&action=save-record-message&status=receive`
+    // );
+
+    // save record pesan dari bot
+    // await axios.get(
+    //   `${API}?id=${uuidv4()}&no=6285176957005&name=BotKawan&message=${
+    //     asnwer["message"]
+    //   }&action=save-record-message&status=send`
+    // );
   } catch (error) {
     console.log(`error kirim pesan: ${error}`);
   }
