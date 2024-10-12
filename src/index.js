@@ -17,6 +17,7 @@ const dotenv = require("dotenv");
 const { runDialogFlowSusenas } = require("./dialog_flow_susenas");
 dotenv.config();
 const API = process.env.APIKEY;
+const noChatbot = process.env.APIKEY;
 
 client.on("qr", (qr) => {
   qrcode.generate(qr, {
@@ -81,9 +82,9 @@ async function saveMessage(message) {
     // mengkondisikan jika pesan nya secara personal maka akan di proses oleh bot
     if (message.id.remote.includes("@c.us") && message.type === "chat") {
       // Memeriksa apakah pesan berisi kata "SUSENAS"
-      if (message.body && message.body.toUpperCase().includes("SUSENAS")) {
+      if (message.body && message.body.toUpperCase().includes("ADMIN")) {
         // Jika pesan mengandung "SUSENAS", jalankan fungsi ini
-        await useTemplateMessageKawanSusenas(message, contact);
+        // await useTemplateMessageKawanSusenas(message, contact);
       } else {
         // Jika tidak, jalankan fungsi ini
         await useTemplateMessageKawan(message, contact);
@@ -145,7 +146,7 @@ async function useTemplateMessageKawan(message, contact) {
 
     // save record pesan dari bot
     await axios.get(
-      `${API}?id=${uuidv4()}&no=6285176957005&name=BotKawan&message=${
+      `${API}?id=${uuidv4()}&no=${noChatbot}&name=BotKawan&message=${
         asnwer["message"]
       }&action=save-record-message&status=send`
     );
