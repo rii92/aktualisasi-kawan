@@ -7,17 +7,27 @@ const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
 const { runDialogFlow } = require("./dialog_flow");
 const { cekSpreadsheetMessage } = require("./message_spreadsheet");
+const {
+  replaceMultipleStringsAll
+} = require("./replace-string.js");
 
 const client = new Client({
   authStrategy: new LocalAuth(),
 });
+
+
+// Dictionary to store user states
+const userState = {};
 
 // inisial API KEY Spreadsheet
 const dotenv = require("dotenv");
 const { runDialogFlowSusenas } = require("./dialog_flow_susenas");
 dotenv.config();
 const API = process.env.APIKEY;
+const API2 = process.env.APIKEY2;
 const noChatbot = process.env.APIKEY;
+const noAdmin1 = process.env.NOADMIN1;
+const noAdmin2 = process.env.NOADMIN2;
 
 client.on("qr", (qr) => {
   qrcode.generate(qr, {
@@ -71,24 +81,57 @@ client.on("message", async (message) => {
   }
 });
 
+function delay(time) {
+  return new Promise(resolve => setTimeout(resolve, time));
+}
+
 async function saveMessage(message) {
   try {
     // ambil data contact
     const contact = await message.getContact();
+    const contactId = contact.id._serialized; // Unique ID for the contact
 
-    // cek status apa sudah masuk function
-    console.log("masuk save message");
-
-    // mengkondisikan jika pesan nya secara personal maka akan di proses oleh bot
-    if (message.id.remote.includes("@c.us") && message.type === "chat") {
-      // Memeriksa apakah pesan berisi kata "SUSENAS"
-      if (message.body && message.body.toUpperCase().includes("ADMIN")) {
-        // Jika pesan mengandung "SUSENAS", jalankan fungsi ini
-        // await useTemplateMessageKawanSusenas(message, contact);
-      } else {
-        // Jika tidak, jalankan fungsi ini
-        await useTemplateMessageKawan(message, contact);
+    // If user is in "admin mode", bot will not reply unless they type "finish"
+    if (userState[contactId] === "admin") {
+      // Reactivate bot only if user types 'finish'
+      if (message.body.toLowerCase() === "finish") {
+        userState[contactId] = "bot"; // Switch back to bot mode
+        await client.sendMessage(contactId, "Anda sekarang kembali berinteraksi dengan chatbot. Ada yang bisa saya bantu?");
       }
+      return; // Do not process further messages by bot
+    }
+
+    // If user sends "admin", switch to admin chat mode
+    if (message.body.toLowerCase() === "admin") {
+      userState[contactId] = "admin"; // Set state to admin mode
+      await client.sendMessage(contactId, "Anda akan dihubungkan dengan admin, mohon tunggu. Chatbot akan berhenti merespon. Ketik 'finish' untuk melanjutkan interaksi dengan chatbot.");
+      console.log(`User ${contactId} is in admin mode`);
+      
+      // Notify the admin
+      const adminNumber = `${noAdmin1}@c.us`; // Replace with admin's number
+      const adminNumber2 = `${noAdmin2}@c.us`; // Replace with admin's number
+      
+      // hapus karakter @c.us dari contactId
+      const nomorPengguna = contactId.replace("@c.us", "");
+      
+      await client.sendMessage(adminNumber, `User https://wa.me/${nomorPengguna} ingin menghubungi admin. Pesan: ${message.body}`);
+      await client.sendMessage(adminNumber2, `User https://wa.me/${nomorPengguna} ingin menghubungi admin. Pesan: ${message.body}`);
+      return; // Stop further processing by the bot
+    }
+
+    // Process message with bot if user is in "bot mode"
+    if (message.id.remote.includes("@c.us") && message.type === "chat") {
+      if (message.body.toLowerCase().includes("kirim-pesan-umum")) {
+        const idMessage = message.body.toLowerCase().split("::")[1];
+        const category = message.body.toLowerCase().split("::")[2];
+        const messageText = message.body.split("::")[3];
+        const nomorPengguna = contactId.replace("@c.us", "");
+        if(nomorPengguna === noAdmin1){
+          await getData(idMessage, messageText);
+        }
+
+      } 
+      await useTemplateMessageKawan(message, contact);
     }
   } catch (error) {
     console.log(error);
@@ -202,4 +245,77 @@ async function useTemplateMessageKawanSusenas(message, contact) {
     console.log(`error kirim pesan: ${error}`);
   }
 }
+
+async function getData(idMessage, messageText) {
+  try {
+    await axios.get(`${API2}?action=read`).then(async function (response) {
+      const data = response.data["records"];
+
+      console.log(data);
+      //for each
+      for (const element of data) {
+        if (element["idMessage"].toString() === idMessage.toString() && element["status"].toString() === "true") {
+          try {
+            // await client.sendMessage(`${element["no"]}@c.us`, `Test wa bot ${element["panggilan"]} ${element["nama"]}`);
+
+            const no = element["no"];
+            const panggilan = element["panggilan"];
+            const nama = element["nama"];
+            const status = element["status"];
+            const catatan = element["catatan"];
+            const cp = element["cp"];
+            const idMessage = element["idMessage"];
+            const Tanggal = element["Tanggal"];
+            const Waktu = element["Waktu"];
+            const Username = element["Username"];
+            const Password = element["Password"];
+            const Email = element["Email"];
+            const Grup = element["Grup"];
+            const NamaSurvei = element["Nama_Survei"];
+            const Role = element["Role"];
+            const Link = element["Link"];
+            const replacement = [
+              [no, "[[no]]"],
+              [panggilan, "[[panggilan]]"],
+              [nama, "[[nama]]"],
+              [status, "[[status]]"],
+              [catatan, "[[catatan]]"],
+              [cp, "[[cp]]"],
+              [idMessage, "[[idMessage]]"],
+              [Tanggal, "[[Tanggal]]"],
+              [Waktu, "[[Waktu]]"],
+              [Username, "[[Username]]"],
+              [Password, "[[Password]]"],
+              [Email, "[[Email]]"],
+              [Grup, "[[Grup]]"],
+              [NamaSurvei, "[[Nama Survei]]"],
+              [Role, "[[Role]]"],
+              [Link, "[[Link]]"],
+            ];
+
+            const newString = await replaceMultipleStringsAll(messageText, replacement);
+            console.log(newString);
+            //***pesan untuk konfirmasi*** 
+            await client.sendMessage(`${no}@c.us`, newString);
+
+            console.log(`sukses kirim data untuk no: ${element["no"]}`);
+            const date = new Date();
+            await axios.get(`${API2}?action=update&id=${element["no"]}&status=false${date.getTime()}`);
+          } catch (error) {
+            console.log(`gagal kirim data untuk no: ${element["nama"]}`);
+            console.log(error);
+          }
+
+          await delay(1000);
+        }
+      }
+      //end for each
+
+    });
+
+  } catch (error) {
+    console.log(error);
+  }
+}
+
 client.initialize();
