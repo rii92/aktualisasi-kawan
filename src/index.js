@@ -28,6 +28,7 @@ const API2 = process.env.APIKEY2;
 const noChatbot = process.env.APIKEY;
 const noAdmin1 = process.env.NOADMIN1;
 const noAdmin2 = process.env.NOADMIN2;
+const noAdmin3 = process.env.NOADMIN3;
 
 client.on("qr", (qr) => {
   qrcode.generate(qr, {
@@ -126,7 +127,7 @@ async function saveMessage(message) {
         const category = message.body.toLowerCase().split("::")[2];
         const messageText = message.body.split("::")[3];
         const nomorPengguna = contactId.replace("@c.us", "");
-        if(nomorPengguna === noAdmin1){
+        if(nomorPengguna === noAdmin1 || nomorPengguna === noAdmin2 || nomorPengguna === noAdmin3) {
           await getData(idMessage, messageText);
         }
 
