@@ -7,14 +7,11 @@ const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
 const { runDialogFlow } = require("./dialog_flow");
 const { cekSpreadsheetMessage } = require("./message_spreadsheet");
-const {
-  replaceMultipleStringsAll
-} = require("./replace-string.js");
+const { replaceMultipleStringsAll } = require("./replace-string.js");
 
 const client = new Client({
   authStrategy: new LocalAuth(),
 });
-
 
 // Dictionary to store user states
 const userState = {};
@@ -83,7 +80,7 @@ client.on("message", async (message) => {
 });
 
 function delay(time) {
-  return new Promise(resolve => setTimeout(resolve, time));
+  return new Promise((resolve) => setTimeout(resolve, time));
 }
 
 async function saveMessage(message) {
@@ -92,34 +89,6 @@ async function saveMessage(message) {
     const contact = await message.getContact();
     const contactId = contact.id._serialized; // Unique ID for the contact
 
-    // If user is in "admin mode", bot will not reply unless they type "finish"
-    if (userState[contactId] === "admin") {
-      // Reactivate bot only if user types 'finish'
-      if (message.body.toLowerCase() === "finish") {
-        userState[contactId] = "bot"; // Switch back to bot mode
-        await client.sendMessage(contactId, "Anda sekarang kembali berinteraksi dengan chatbot. Ada yang bisa saya bantu?");
-      }
-      return; // Do not process further messages by bot
-    }
-
-    // If user sends "admin", switch to admin chat mode
-    if (message.body.toLowerCase() === "admin") {
-      userState[contactId] = "admin"; // Set state to admin mode
-      await client.sendMessage(contactId, "Anda akan dihubungkan dengan admin, mohon tunggu. Chatbot akan berhenti merespon. Ketik 'finish' untuk melanjutkan interaksi dengan chatbot.");
-      console.log(`User ${contactId} is in admin mode`);
-      
-      // Notify the admin
-      const adminNumber = `${noAdmin1}@c.us`; // Replace with admin's number
-      const adminNumber2 = `${noAdmin2}@c.us`; // Replace with admin's number
-      
-      // hapus karakter @c.us dari contactId
-      const nomorPengguna = contactId.replace("@c.us", "");
-      
-      await client.sendMessage(adminNumber, `User https://wa.me/${nomorPengguna} ingin menghubungi admin. Pesan: ${message.body}`);
-      await client.sendMessage(adminNumber2, `User https://wa.me/${nomorPengguna} ingin menghubungi admin. Pesan: ${message.body}`);
-      return; // Stop further processing by the bot
-    }
-
     // Process message with bot if user is in "bot mode"
     if (message.id.remote.includes("@c.us") && message.type === "chat") {
       if (message.body.toLowerCase().includes("kirim-pesan-umum")) {
@@ -127,12 +96,78 @@ async function saveMessage(message) {
         const category = message.body.toLowerCase().split("::")[2];
         const messageText = message.body.split("::")[3];
         const nomorPengguna = contactId.replace("@c.us", "");
-        if(nomorPengguna === noAdmin1 || nomorPengguna === noAdmin2 || nomorPengguna === noAdmin3) {
+        if (
+          nomorPengguna === noAdmin1 ||
+          nomorPengguna === noAdmin2 ||
+          nomorPengguna === noAdmin3
+        ) {
           await getData(idMessage, messageText);
         }
+      }
 
-      } 
-      await useTemplateMessageKawan(message, contact);
+      //check apakah dalam mode bot atau admin
+      if (!userState[contactId] || userState[contactId] == null) {
+        // pilih apakah ingin mode pelayanan publik atau rekrutmen? buat condition
+        await client.sendMessage(
+          contactId,
+          'Halo berhubung lagi proses rekrutmen mitra 2025 fitur apa yang anda inginkan? pilih dibawah ini ya\n1. Rekrutmen mitra 2025 (fitur jawab otomatis di nonaktifkan dan akan dijawab langsung oleh admin)\n2. Chatbot Pelayanan Publik (fitur jawab otomatis aktif)\nKirim "1" untuk Rekrutmen dan "2" untuk Chatbot Pelayanan Publik. Untuk kembali ke fitur awal maka kirim "00"'
+        );
+
+        if (message.body.toLowerCase() === "1") {
+          userState[contactId] = "admin"; // Set state to admin mode
+          await client.sendMessage(
+            contactId,
+            "Anda akan dihubungkan dengan admin, mohon tunggu. Chatbot akan berhenti merespon. Ketik '00' untuk kembali ke menu awal."
+          );
+          console.log(`User ${contactId} is in admin mode`);
+
+          // Notify the admin
+          const adminNumber = `${noAdmin1}@c.us`; // Replace with admin's number
+          const adminNumber2 = `${noAdmin2}@c.us`; // Replace with admin's number
+
+          // hapus karakter @c.us dari contactId
+          const nomorPengguna = contactId.replace("@c.us", "");
+
+          await client.sendMessage(
+            adminNumber,
+            `User https://wa.me/${nomorPengguna} ingin menghubungi admin. Pesan: ${message.body}`
+          );
+          await client.sendMessage(
+            adminNumber2,
+            `User https://wa.me/${nomorPengguna} ingin menghubungi admin. Pesan: ${message.body}`
+          );
+          return; // Stop further processing by the bot
+        } else if (message.body.toLowerCase() === "2") {
+          userState[contactId] = "bot";
+          await client.sendMessage(
+            contactId,
+            "Anda sekarang berinteraksi dengan chatbot. Ada yang bisa saya bantu?"
+          );
+        } else if (message.body.toLowerCase() === "00") {
+          userState[contactId] = null;
+          await client.sendMessage(
+            contactId,
+            'Anda sekarang kembali ke fitur awal. Ada yang bisa saya bantu?\n1. Rekrutmen mitra 2025 (fitur jawab otomatis di nonaktifkan dan akan dijawab langsung oleh admin)\n2. Chatbot Pelayanan Publik (fitur jawab otomatis aktif)\nKirim "1" untuk Rekrutmen dan "2" untuk Chatbot Pelayanan Publik. Untuk kembali ke fitur awal maka kirim |"00"'
+          );
+        }
+      }
+
+      // If user is in "admin mode", bot will not reply unless they type "finish"
+      if (userState[contactId] === "admin") {
+        // Reactivate bot only if user types 'finish'
+        if (message.body.toLowerCase() === "00") {
+          userState[contactId] = null; // Switch back to bot mode
+          await client.sendMessage(
+            contactId,
+            "Anda sekarang kembali berinteraksi dengan chatbot. Ada yang bisa saya bantu?"
+          );
+        }
+        return; // Do not process further messages by bot
+      }
+
+      if (userState[contactId] === "bot") {
+        await useTemplateMessageKawan(message, contact);
+      }
     }
   } catch (error) {
     console.log(error);
@@ -255,8 +290,12 @@ async function getData(idMessage, messageText) {
       console.log(data);
       //for each
       for (const element of data) {
-        if (element["idMessage"].toString() === idMessage.toString() && element["status"].toString() === "true") {
+        if (
+          element["idMessage"].toString() === idMessage.toString() &&
+          element["status"].toString() === "true"
+        ) {
           try {
+            console.log("masuk fungsi looping spam");
             // await client.sendMessage(`${element["no"]}@c.us`, `Test wa bot ${element["panggilan"]} ${element["nama"]}`);
 
             const no = element["no"];
@@ -294,14 +333,21 @@ async function getData(idMessage, messageText) {
               [Link, "[[Link]]"],
             ];
 
-            const newString = await replaceMultipleStringsAll(messageText, replacement);
+            const newString = await replaceMultipleStringsAll(
+              messageText,
+              replacement
+            );
             console.log(newString);
-            //***pesan untuk konfirmasi*** 
+            //***pesan untuk konfirmasi***
             await client.sendMessage(`${no}@c.us`, newString);
 
             console.log(`sukses kirim data untuk no: ${element["no"]}`);
             const date = new Date();
-            await axios.get(`${API2}?action=update&id=${element["no"]}&status=false${date.getTime()}`);
+            await axios.get(
+              `${API2}?action=update&id=${
+                element["no"]
+              }&status=false${date.getTime()}`
+            );
           } catch (error) {
             console.log(`gagal kirim data untuk no: ${element["nama"]}`);
             console.log(error);
@@ -311,9 +357,7 @@ async function getData(idMessage, messageText) {
         }
       }
       //end for each
-
     });
-
   } catch (error) {
     console.log(error);
   }
