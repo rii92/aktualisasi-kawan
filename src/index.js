@@ -26,6 +26,7 @@ const noChatbot = process.env.APIKEY;
 const noAdmin1 = process.env.NOADMIN1;
 const noAdmin2 = process.env.NOADMIN2;
 const noAdmin3 = process.env.NOADMIN3;
+const noAdmin4 = process.env.NOADMIN4;
 
 client.on("qr", (qr) => {
   qrcode.generate(qr, {
@@ -99,7 +100,8 @@ async function saveMessage(message) {
         if (
           nomorPengguna === noAdmin1 ||
           nomorPengguna === noAdmin2 ||
-          nomorPengguna === noAdmin3
+          nomorPengguna === noAdmin3 ||
+          nomorPengguna === noAdmin4
         ) {
           await getData(idMessage, messageText);
         }
