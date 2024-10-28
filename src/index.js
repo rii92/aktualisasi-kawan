@@ -108,17 +108,12 @@ async function saveMessage(message) {
       //check apakah dalam mode bot atau admin
       if (!userState[contactId] || userState[contactId] == null) {
         // pilih apakah ingin mode pelayanan publik atau rekrutmen? buat condition
-        await client.sendMessage(
-          contactId,
-          'Halo berhubung lagi proses rekrutmen mitra 2025 fitur apa yang anda inginkan? pilih dibawah ini ya\n1. Rekrutmen mitra 2025 (fitur jawab otomatis di nonaktifkan dan akan dijawab langsung oleh admin)\n2. Chatbot Pelayanan Publik (fitur jawab otomatis aktif)\nKirim "1" untuk Rekrutmen dan "2" untuk Chatbot Pelayanan Publik. Untuk kembali ke fitur awal maka kirim "00"'
-        );
+
+        await modeTyping(message, `Halo berhubung lagi proses rekrutmen mitra 2025 fitur apa yang anda inginkan? pilih dibawah ini ya\n1. Rekrutmen mitra 2025 (fitur jawab otomatis di nonaktifkan dan akan dijawab langsung oleh admin)\n2. Chatbot Pelayanan Publik (fitur jawab otomatis aktif)\nKirim "1" untuk Rekrutmen dan "2" untuk Chatbot Pelayanan Publik. Untuk kembali ke fitur awal maka kirim "00"`, contactId);
 
         if (message.body.toLowerCase() === "1") {
           userState[contactId] = "admin"; // Set state to admin mode
-          await client.sendMessage(
-            contactId,
-            "Anda akan dihubungkan dengan admin, mohon tunggu. Chatbot akan berhenti merespon. Ketik '00' untuk kembali ke menu awal."
-          );
+          await modeTyping(message, `Anda akan dihubungkan dengan admin, mohon tunggu. Chatbot akan berhenti merespon. Ketik '00' untuk kembali ke menu awal.`, contactId);
           console.log(`User ${contactId} is in admin mode`);
 
           // Notify the admin
@@ -139,16 +134,10 @@ async function saveMessage(message) {
           return; // Stop further processing by the bot
         } else if (message.body.toLowerCase() === "2") {
           userState[contactId] = "bot";
-          await client.sendMessage(
-            contactId,
-            "Anda sekarang berinteraksi dengan chatbot. Ada yang bisa saya bantu?"
-          );
+          await modeTyping(message, `Anda sekarang berinteraksi dengan chatbot. Ada yang bisa saya bantu?`, contactId);
         } else if (message.body.toLowerCase() === "00") {
           userState[contactId] = null;
-          await client.sendMessage(
-            contactId,
-            'Anda sekarang kembali ke fitur awal. Ada yang bisa saya bantu?\n1. Rekrutmen mitra 2025 (fitur jawab otomatis di nonaktifkan dan akan dijawab langsung oleh admin)\n2. Chatbot Pelayanan Publik (fitur jawab otomatis aktif)\nKirim "1" untuk Rekrutmen dan "2" untuk Chatbot Pelayanan Publik. Untuk kembali ke fitur awal maka kirim |"00"'
-          );
+          await modeTyping(message, `Anda sekarang kembali ke fitur awal. Ada yang bisa saya bantu?\n1. Rekrutmen mitra 2025 (fitur jawab otomatis di nonaktifkan dan akan dijawab langsung oleh admin)\n2. Chatbot Pelayanan Publik (fitur jawab otomatis aktif)\nKirim "1" untuk Rekrutmen dan "2" untuk Chatbot Pelayanan Publik. Untuk kembali ke fitur awal maka kirim |"00"`, contactId);
         }
       }
 
@@ -157,10 +146,7 @@ async function saveMessage(message) {
         // Reactivate bot only if user types 'finish'
         if (message.body.toLowerCase() === "00") {
           userState[contactId] = null; // Switch back to bot mode
-          await client.sendMessage(
-            contactId,
-            "Anda sekarang kembali berinteraksi dengan chatbot. Ada yang bisa saya bantu?"
-          );
+          await modeTyping(message, `Anda sekarang kembali berinteraksi dengan chatbot. Ada yang bisa saya bantu?`, contactId);
         }
         return; // Do not process further messages by bot
       }
@@ -361,6 +347,32 @@ async function getData(idMessage, messageText) {
   } catch (error) {
     console.log(error);
   }
+}
+
+async function modeTyping(message, replyMessage, contactId) {
+  // tanda sudah masuk fungsi useTemplateMessage()
+  console.log("masuk fungsi proses pesan");
+
+  // mengambil pesan untuk bisa menjalankan method khusus dari bot
+  const chat = await message.getChat();
+
+  // mengubah status pesan menjadi centang biru
+  await chat.sendSeen();
+
+  // mengubah status bot menjadi sedang mengetik....
+  await chat.sendStateTyping();
+
+  // hitung waktu pengetikkan
+  const typingTime = Math.min((replyMessage.length / 200) * 60000, 2000);
+
+  // fungsi waktu tunggu ketik
+  await new Promise((resolve) => setTimeout(resolve, typingTime));
+
+  // mengirim pesan yang sudah disesuaikan ke user
+  client.sendMessage(
+    contactId,
+    `${replyMessage.toString()}`
+  );
 }
 
 client.initialize();
