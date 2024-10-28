@@ -139,21 +139,20 @@ async function saveMessage(message) {
           userState[contactId] = null;
           await modeTyping(message, `Anda sekarang kembali ke fitur awal. Ada yang bisa saya bantu?\n1. Rekrutmen mitra 2025 (fitur jawab otomatis di nonaktifkan dan akan dijawab langsung oleh admin)\n2. Chatbot Pelayanan Publik (fitur jawab otomatis aktif)\nKirim "1" untuk Rekrutmen dan "2" untuk Chatbot Pelayanan Publik. Untuk kembali ke fitur awal maka kirim |"00"`, contactId);
         }
-      }
-
-      // If user is in "admin mode", bot will not reply unless they type "finish"
-      if (userState[contactId] === "admin") {
+      } else if (userState[contactId] === "admin") {
         // Reactivate bot only if user types 'finish'
         if (message.body.toLowerCase() === "00") {
           userState[contactId] = null; // Switch back to bot mode
           await modeTyping(message, `Anda sekarang kembali berinteraksi dengan chatbot. Ada yang bisa saya bantu?`, contactId);
         }
         return; // Do not process further messages by bot
-      }
-
-      if (userState[contactId] === "bot") {
+      } else if (userState[contactId] === "bot") {
+        if (message.body.toLowerCase() === "00") {
+          userState[contactId] = null; // Switch back to bot mode
+          await modeTyping(message, `Anda sekarang kembali berinteraksi dengan chatbot. Ada yang bisa saya bantu?`, contactId);
+        }
         await useTemplateMessageKawan(message, contact);
-      }
+      }  
     }
   } catch (error) {
     console.log(error);
