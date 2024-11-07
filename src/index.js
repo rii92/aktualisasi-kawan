@@ -108,53 +108,53 @@ async function saveMessage(message) {
       }
 
       //check apakah dalam mode bot atau admin
-      if (!userState[contactId] || userState[contactId] == null) {
-        // pilih apakah ingin mode pelayanan publik atau rekrutmen? buat condition
+      // if (!userState[contactId] || userState[contactId] == null) {
+      //   // pilih apakah ingin mode pelayanan publik atau rekrutmen? buat condition
 
-        await modeTyping(message, `Halo berhubung lagi proses rekrutmen mitra 2025 fitur apa yang anda inginkan? pilih dibawah ini ya\n1. Rekrutmen mitra 2025 (fitur jawab otomatis di nonaktifkan dan akan dijawab langsung oleh admin)\n2. Chatbot Pelayanan Publik (fitur jawab otomatis aktif)\nKirim "1" untuk Rekrutmen dan "2" untuk Chatbot Pelayanan Publik. Untuk kembali ke fitur awal maka kirim "00"`, contactId);
+      //   await modeTyping(message, `Halo berhubung lagi proses rekrutmen mitra 2025 fitur apa yang anda inginkan? pilih dibawah ini ya\n1. Rekrutmen mitra 2025 (fitur jawab otomatis di nonaktifkan dan akan dijawab langsung oleh admin)\n2. Chatbot Pelayanan Publik (fitur jawab otomatis aktif)\nKirim "1" untuk Rekrutmen dan "2" untuk Chatbot Pelayanan Publik. Untuk kembali ke fitur awal maka kirim "00"`, contactId);
 
-        if (message.body.toLowerCase() === "1") {
-          userState[contactId] = "admin"; // Set state to admin mode
-          await modeTyping(message, `Anda akan dihubungkan dengan admin, mohon tunggu. Chatbot akan berhenti merespon. Ketik '00' untuk kembali ke menu awal.`, contactId);
-          console.log(`User ${contactId} is in admin mode`);
+      //   if (message.body.toLowerCase() === "1") {
+      //     userState[contactId] = "admin"; // Set state to admin mode
+      //     await modeTyping(message, `Anda akan dihubungkan dengan admin, mohon tunggu. Chatbot akan berhenti merespon. Ketik '00' untuk kembali ke menu awal.`, contactId);
+      //     console.log(`User ${contactId} is in admin mode`);
 
-          // Notify the admin
-          const adminNumber = `${noAdmin1}@c.us`; // Replace with admin's number
-          const adminNumber2 = `${noAdmin2}@c.us`; // Replace with admin's number
+      //     // Notify the admin
+      //     const adminNumber = `${noAdmin1}@c.us`; // Replace with admin's number
+      //     const adminNumber2 = `${noAdmin2}@c.us`; // Replace with admin's number
 
-          // hapus karakter @c.us dari contactId
-          const nomorPengguna = contactId.replace("@c.us", "");
+      //     // hapus karakter @c.us dari contactId
+      //     const nomorPengguna = contactId.replace("@c.us", "");
 
-          await client.sendMessage(
-            adminNumber,
-            `User https://wa.me/${nomorPengguna} ingin menghubungi admin. Pesan: ${message.body}`
-          );
-          await client.sendMessage(
-            adminNumber2,
-            `User https://wa.me/${nomorPengguna} ingin menghubungi admin. Pesan: ${message.body}`
-          );
-          return; // Stop further processing by the bot
-        } else if (message.body.toLowerCase() === "2") {
-          userState[contactId] = "bot";
-          await modeTyping(message, `Anda sekarang berinteraksi dengan chatbot. Ada yang bisa saya bantu?`, contactId);
-        } else if (message.body.toLowerCase() === "00") {
-          userState[contactId] = null;
-          await modeTyping(message, `Anda sekarang kembali ke fitur awal. Ada yang bisa saya bantu?\n1. Rekrutmen mitra 2025 (fitur jawab otomatis di nonaktifkan dan akan dijawab langsung oleh admin)\n2. Chatbot Pelayanan Publik (fitur jawab otomatis aktif)\nKirim "1" untuk Rekrutmen dan "2" untuk Chatbot Pelayanan Publik. Untuk kembali ke fitur awal maka kirim |"00"`, contactId);
-        }
-      } else if (userState[contactId] === "admin") {
-        // Reactivate bot only if user types 'finish'
-        if (message.body.toLowerCase() === "00") {
-          userState[contactId] = null; // Switch back to bot mode
-          await modeTyping(message, `Anda sekarang kembali berinteraksi dengan chatbot. Ada yang bisa saya bantu?`, contactId);
-        }
-        return; // Do not process further messages by bot
-      } else if (userState[contactId] === "bot") {
-        if (message.body.toLowerCase() === "00") {
-          userState[contactId] = null; // Switch back to bot mode
-          await modeTyping(message, `Anda sekarang kembali berinteraksi dengan chatbot. Ada yang bisa saya bantu?`, contactId);
-        }
-        await useTemplateMessageKawan(message, contact);
-      }  
+      //     await client.sendMessage(
+      //       adminNumber,
+      //       `User https://wa.me/${nomorPengguna} ingin menghubungi admin. Pesan: ${message.body}`
+      //     );
+      //     await client.sendMessage(
+      //       adminNumber2,
+      //       `User https://wa.me/${nomorPengguna} ingin menghubungi admin. Pesan: ${message.body}`
+      //     );
+      //     return; // Stop further processing by the bot
+      //   } else if (message.body.toLowerCase() === "2") {
+      //     userState[contactId] = "bot";
+      //     await modeTyping(message, `Anda sekarang berinteraksi dengan chatbot. Ada yang bisa saya bantu?`, contactId);
+      //   } else if (message.body.toLowerCase() === "00") {
+      //     userState[contactId] = null;
+      //     await modeTyping(message, `Anda sekarang kembali ke fitur awal. Ada yang bisa saya bantu?\n1. Rekrutmen mitra 2025 (fitur jawab otomatis di nonaktifkan dan akan dijawab langsung oleh admin)\n2. Chatbot Pelayanan Publik (fitur jawab otomatis aktif)\nKirim "1" untuk Rekrutmen dan "2" untuk Chatbot Pelayanan Publik. Untuk kembali ke fitur awal maka kirim |"00"`, contactId);
+      //   }
+      // } else if (userState[contactId] === "admin") {
+      //   // Reactivate bot only if user types 'finish'
+      //   if (message.body.toLowerCase() === "00") {
+      //     userState[contactId] = null; // Switch back to bot mode
+      //     await modeTyping(message, `Anda sekarang kembali berinteraksi dengan chatbot. Ada yang bisa saya bantu?`, contactId);
+      //   }
+      //   return; // Do not process further messages by bot
+      // } else if (userState[contactId] === "bot") {
+      //   if (message.body.toLowerCase() === "00") {
+      //     userState[contactId] = null; // Switch back to bot mode
+      //     await modeTyping(message, `Anda sekarang kembali berinteraksi dengan chatbot. Ada yang bisa saya bantu?`, contactId);
+      //   }
+      //   await useTemplateMessageKawan(message, contact);
+      // }  
     }
   } catch (error) {
     console.log(error);
