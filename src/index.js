@@ -6,6 +6,7 @@ const dotenv = require("dotenv");
 const { runDialogFlow } = require("./dialog_flow");
 const { cekSpreadsheetMessage } = require("./message_spreadsheet");
 const { replaceMultipleStringsAll } = require("./replace-string.js");
+const schedule = require("node-schedule");
 
 // Load environment variables
 dotenv.config();
@@ -216,6 +217,7 @@ const saveMessage = async (message) => {
         if ([noAdmin1, noAdmin2, noAdmin3, noAdmin4].includes(nomorPengguna)) {
           if (category === "delay") {
             schedule.scheduleJob("0 8 * * *", async () => {
+              console.log("Starting job at 8 AM...");
               await getData(idMessage, messageText);
             });
           } else {
