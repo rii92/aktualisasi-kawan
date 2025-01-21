@@ -214,7 +214,13 @@ const saveMessage = async (message) => {
         const nomorPengguna = contactId.replace("@c.us", "");
 
         if ([noAdmin1, noAdmin2, noAdmin3, noAdmin4].includes(nomorPengguna)) {
-          await getData(idMessage, messageText);
+          if (category === "delay") {
+            schedule.scheduleJob("0 8 * * *", async () => {
+              await getData(idMessage, messageText);
+            });
+          } else {
+            await getData(idMessage, messageText);
+          }
         }
         return;
       }
