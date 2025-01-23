@@ -216,6 +216,7 @@ const saveMessage = async (message) => {
 
         if ([noAdmin1, noAdmin2, noAdmin3, noAdmin4].includes(nomorPengguna)) {
           if (category === "delay") {
+            console.log("Starting job at 8 AM...");
             schedule.scheduleJob("0 8 * * *", async () => {
               console.log("Starting job at 8 AM...");
               await getData(idMessage, messageText);
