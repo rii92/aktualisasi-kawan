@@ -127,15 +127,15 @@ const getData = async (idMessage, messageText) => {
             [element.catatan, "[[catatan]]"],
             [element.cp, "[[cp]]"],
             [element.idMessage, "[[idMessage]]"],
-            [element.Tanggal, "[[Tanggal]]"],
-            [element.Waktu, "[[Waktu]]"],
-            [element.Username, "[[Username]]"],
-            [element.Password, "[[Password]]"],
-            [element.Email, "[[Email]]"],
-            [element.Grup, "[[Grup]]"],
-            [element.Nama_Survei, "[[Nama Survei]]"],
-            [element.Role, "[[Role]]"],
-            [element.Link, "[[Link]]"],
+            [element.Tanggal, "[[tanggal]]"],
+            [element.Waktu, "[[waktu]]"],
+            [element.Username, "[[username]]"],
+            [element.Password, "[[password]]"],
+            [element.Email, "[[email]]"],
+            [element.Grup, "[[grup]]"],
+            [element.Nama_Survei, "[[nama survei]]"],
+            [element.Role, "[[role]]"],
+            [element.Link, "[[link]]"],
           ];
 
           const newString = await replaceMultipleStringsAll(
@@ -145,11 +145,11 @@ const getData = async (idMessage, messageText) => {
           await client.sendMessage(`${element.no}@c.us`, newString);
 
           const date = new Date();
-          await axios.get(
-            `${API2}?action=update&id=${
-              element.no
-            }&status=false${date.getTime()}`
-          );
+          // await axios.get(
+          //   `${API2}?action=update&id=${
+          //     element.no
+          //   }&status=false${date.getTime()}`
+          // );
 
           await delay(1000);
         } catch (error) {
