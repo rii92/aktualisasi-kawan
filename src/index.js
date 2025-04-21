@@ -6,6 +6,7 @@ const dotenv = require("dotenv");
 const { runDialogFlow } = require("./dialog_flow");
 const { cekSpreadsheetMessage } = require("./message_spreadsheet");
 const { replaceMultipleStringsAll } = require("./replace-string.js");
+const schedule = require("node-schedule");
 
 // Load environment variables
 dotenv.config();
