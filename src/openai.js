@@ -22,11 +22,18 @@ const runDeepSeek = async (message) => {
     });
 
     const text = response.choices[0].message.content;
-    `${text} \n\n*Disclaimer:*\nJawaban ini dihasilkan oleh asisten digital (DeepSeek AI). Kami sangat menghargai saran dan kritik Anda untuk pengembangan yang lebih baik. Terima kasih!😁`;
+    
+    return `${text} \n\n*Disclaimer:*\nJawaban ini dihasilkan oleh asisten digital (DeepSeek AI). Kami sangat menghargai saran dan kritik Anda untuk pengembangan yang lebih baik. Terima kasih!😁`;
   } catch (error) {
     console.error("Error:", error);
     return "Maaf, terjadi kesalahan saat memproses permintaan Anda.";
   }
 };
 
+// async function start() {
+//   const message = await runDeepSeek("Siapa Anda");
+//   console.log(message);
+// }
+
+// start();
 module.exports.runDeepSeek = runDeepSeek;
