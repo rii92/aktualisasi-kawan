@@ -18,5 +18,3 @@ const runGeminiAi = async (message) => {
 }
 
 module.exports.runGeminiAi = runGeminiAi;
-
-// runGeminiAi("resep nasi goreng");
