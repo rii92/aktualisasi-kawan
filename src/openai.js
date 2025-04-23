@@ -10,9 +10,9 @@ const openai = new OpenAI({
   },
 });
 
-const runPrompt = async (message) => {
+const runDeepSeek = async (message) => {
   try {
-    const systemMessage = `Saya sebagai admin BPS Sanggau. ${message}. Jawab dalam 1 paragraf dan sesingkat mungkin.`;
+    const systemMessage = `Dengan informasi tambahan sumber pencarian google dan web bps sanggau di link (https://sanggaukab.bps.go.id/), Jawablah pesan berikut sebagai admin BPS Kawan Sanggau dengan ramah sebanyak paling banyak maksimal 30 kata:  ${message}`;
     const response = await openai.chat.completions.create({
       model: "deepseek/deepseek-r1:free",
       messages: [
@@ -21,16 +21,12 @@ const runPrompt = async (message) => {
       ],
     });
 
-    return response.choices[0].message.content;
+    const text = response.choices[0].message.content;
+    `${text} \n\n*Disclaimer:*\nJawaban ini dihasilkan oleh asisten digital (DeepSeek AI). Kami sangat menghargai saran dan kritik Anda untuk pengembangan yang lebih baik. Terima kasih!😁`;
   } catch (error) {
     console.error("Error:", error);
     return "Maaf, terjadi kesalahan saat memproses permintaan Anda.";
   }
 };
 
-async function start() {
-  const message = await runPrompt("Siapa Anda");
-  console.log(message);
-}
-
-start();
+module.exports.runDeepSeek = runDeepSeek;

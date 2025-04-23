@@ -1,6 +1,6 @@
 const dialogflow = require("@google-cloud/dialogflow");
 const uuid = require("uuid");
-const { runGeminiAi } = require("./gemini_ai");
+const { runDeepSeek } = require("./openai");
 require("dotenv").config();
 /**
  * Send a query to the dialogflow agent, and return the query result.
@@ -42,7 +42,7 @@ const runDialogFlow = async (message) => {
   if (result.intent) {
     console.log(`  Intent: ${result.intent.displayName}`);
     if (result.intent.displayName === "Default Fallback Intent") {
-      const messageGeminiAi = await runGeminiAi(message);
+      const messageGeminiAi = await runDeepSeek(message);
       const jsonMessage = {
         "message": messageGeminiAi,
         "intent": result.intent.displayName
