@@ -12,7 +12,7 @@ const schedule = require("node-schedule");
 dotenv.config();
 const {
   APIKEY: API,
-  APIKEY2: API2,
+  APIKEYPESALIR: APIPESALIR,
   NOADMIN1: noAdmin1,
   NOADMIN2: noAdmin2,
   NOADMIN3: noAdmin3,
@@ -110,7 +110,7 @@ const useTemplateMessageKawan = async (message, contact) => {
 
 const getData = async (idMessage, messageText) => {
   try {
-    const response = await axios.get(`${API2}?action=read`);
+    const response = await axios.get(`${API}?action=read-spam`);
     const data = response.data.records;
 
     for (const element of data) {
@@ -146,7 +146,7 @@ const getData = async (idMessage, messageText) => {
 
           const date = new Date();
           // await axios.get(
-          //   `${API2}?action=update&id=${
+          //   `${API}?action=update&id=${
           //     element.no
           //   }&status=false${date.getTime()}`
           // );
@@ -179,6 +179,9 @@ client.on("ready", () => {
     0,
     0
   );
+
+  // Initialize PESALIR notification scheduler
+  schedulePesalirNotifications();
 });
 
 client.on("authenticated", () => {
@@ -269,3 +272,90 @@ Untuk kembali ke menu awal kirim "00"`,
 };
 
 client.initialize();
+
+// Scheduler for PESALIR duty notifications
+const schedulePesalirNotifications = async () => {
+  try {
+    // Fetch schedule data
+    const scheduleResponse = await axios.get(`${API}?action=petugas-pesalir`);
+    const attendanceResponse = await axios.get(`${APIPESALIR}?action=read`);
+    
+    // Process attendance data to find backup officers
+    const attendanceData = attendanceResponse.data.records;
+    const officerAttendance = {};
+    
+    // Count attendance for each officer
+    attendanceData.forEach(record => {
+      if (!officerAttendance[record.Nama_Petugas]) {
+        officerAttendance[record.Nama_Petugas] = 0;
+      }
+      officerAttendance[record.Nama_Petugas]++;
+    });
+    
+    // Sort officers by attendance (least to most)
+    const backupOfficers = Object.keys(officerAttendance)
+      .sort((a, b) => officerAttendance[a] - officerAttendance[b])
+      .slice(0, 3);
+    
+    // Schedule daily check at 8 AM
+    // schedule.scheduleJob("0 8 * * *", async () => {
+    schedule.scheduleJob("0 12 * * *", async () => {
+      console.log("Running PESALIR notification check...");
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Check for today's schedule
+      const scheduleData = scheduleResponse.data.records;
+      for (const duty of scheduleData) {
+        const dutyDate = new Date(duty.Datetime);
+        dutyDate.setHours(0, 0, 0, 0);
+        
+        if (dutyDate.getTime() === today.getTime()) {
+          // Get officer name and number
+          const officerName = duty.Nama_Petugas ? duty.Nama_Petugas.split(',')[0] : "Petugas";
+          const officerNumber = duty.Nomor_Petugas;
+          
+          // Get supervisor name and number
+          const supervisorName = duty.Pengawas ? duty.Pengawas.split(',')[0] : "Tidak Ada";
+          const supervisorNumber = duty.Nomor_Pengawas;
+          
+          // Create backup officer message
+          const backupMessage = `🔔 *INFORMASI BACKUP PESALIR*\n\nJika berhalangan hadir hari ini, berikut adalah 3 petugas dengan jadwal paling sedikit yang dapat menggantikan:\n\n1. ${backupOfficers[0]}\n2. ${backupOfficers[1]}\n3. ${backupOfficers[2]}\n\nMohon koordinasinya. Terima kasih.`;
+          
+          // Send notification to officer with backup info
+          const officerMessage = `🔔 *PENGINGAT JADWAL PESALIR*\n\nSelamat pagi ${officerName}!\nAnda dijadwalkan bertugas hari ini sebagai petugas PESALIR.\nMohon hadir tepat waktu dan melaksanakan tugas sesuai SOP.\n\n${backupMessage}`;
+          
+          // Send to officer
+          if (officerNumber) {
+            await client.sendMessage(`${officerNumber}@c.us`, officerMessage);
+            console.log(`Sent notification to officer ${officerName} at ${officerNumber}`);
+          }
+          
+          // Send notification to supervisor if any, also with backup info
+          if (supervisorName !== "Tidak Ada" && supervisorNumber && supervisorNumber !== officerNumber) {
+            const supervisorMessage = `🔔 *PENGINGAT JADWAL PENGAWASAN PESALIR*\n\nSelamat pagi ${supervisorName}!\nAnda dijadwalkan sebagai pengawas PESALIR hari ini.\nPetugas yang bertugas: ${officerName} (${officerNumber})\n\n${backupMessage}`;
+            
+            await client.sendMessage(`${supervisorNumber}@c.us`, supervisorMessage);
+            console.log(`Sent notification to supervisor ${supervisorName} at ${supervisorNumber}`);
+          }
+          
+          // Also send notification to admins
+          const adminMessage = `🔔 *INFORMASI JADWAL PESALIR HARI INI*\n\nPetugas: ${officerName} (${officerNumber})\nPengawas: ${supervisorName} (${supervisorNumber || "Tidak Ada"})\n\n${backupMessage}`;
+          
+          const adminNumbers = [noAdmin1, noAdmin2, noAdmin3, noAdmin4];
+          for (const admin of adminNumbers) {
+            if (admin !== officerNumber && admin !== supervisorNumber) {
+              await client.sendMessage(`${admin}@c.us`, adminMessage);
+            }
+          }
+          
+          console.log(`Completed PESALIR notifications for ${officerName}`);
+        }
+      }
+    });
+    
+    console.log("PESALIR notification scheduler initialized");
+  } catch (error) {
+    console.error("Error setting up PESALIR notifications:", error);
+  }
+};
