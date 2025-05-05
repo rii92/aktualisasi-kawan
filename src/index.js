@@ -13,10 +13,6 @@ dotenv.config();
 const {
   APIKEY: API,
   APIKEYPESALIR: APIPESALIR,
-  NOADMIN1: noAdmin1,
-  NOADMIN2: noAdmin2,
-  NOADMIN3: noAdmin3,
-  NOADMIN4: noAdmin4,
   APIKEY: noChatbot,
 } = process.env;
 
@@ -32,12 +28,20 @@ const userState = {};
 const delay = (time) => new Promise((resolve) => setTimeout(resolve, time));
 
 const notifyAdmins = async (contactId, message) => {
-  const nomorPengguna = contactId.replace("@c.us", "");
-  const notificationMessage = `User https://wa.me/${nomorPengguna} ingin menghubungi admin. Pesan: ${message}`;
+  try {
+    const nomorPengguna = contactId.replace("@c.us", "");
+    const notificationMessage = `User https://wa.me/${nomorPengguna} ingin menghubungi admin. Pesan: ${message}`;
 
-  const adminNumbers = [noAdmin1, noAdmin2, noAdmin3, noAdmin4];
-  for (const admin of adminNumbers) {
-    await client.sendMessage(`${admin}@c.us`, notificationMessage);
+    // Fetch admin data from API
+    const adminResponse = await axios.get(`${API}?action=read-admin`);
+    const adminNumbers = adminResponse.data.records.map(admin => admin.no);
+    
+    // Send notification to all admins
+    for (const admin of adminNumbers) {
+      await client.sendMessage(`${admin}@c.us`, notificationMessage);
+    }
+  } catch (error) {
+    console.error("Error notifying admins:", error);
   }
 };
 
@@ -217,15 +221,43 @@ const saveMessage = async (message) => {
           .split("::");
         const nomorPengguna = contactId.replace("@c.us", "");
 
-        if ([noAdmin1, noAdmin2, noAdmin3, noAdmin4].includes(nomorPengguna)) {
-          if (category === "delay") {
-            console.log("Starting job at 8 AM...");
-            schedule.scheduleJob("0 8 * * *", async () => {
-              console.log("Starting job at 8 AM...");
+        try {
+          // Fetch admin data from API
+          const adminResponse = await axios.get(`${API}?action=read-admin`);
+          const adminNumbers = adminResponse.data.records.map(admin => admin.no);
+          
+          // Check if sender is an admin
+          if (adminNumbers.includes(parseInt(nomorPengguna)) || adminNumbers.includes(nomorPengguna)) {
+            if (category === "delay") {
+              console.log("Scheduling message broadcast for 8 AM tomorrow...");
+              schedule.scheduleJob("0 8 * * *", async () => {
+                console.log("Executing scheduled message broadcast...");
+                await getData(idMessage, messageText);
+              });
+            } else {
+              console.log("Executing immediate message broadcast...");
               await getData(idMessage, messageText);
-            });
+            }
           } else {
-            await getData(idMessage, messageText);
+            console.log(`Unauthorized broadcast attempt from ${nomorPengguna}`);
+            await client.sendMessage(contactId, "Maaf, Anda tidak memiliki izin untuk mengirim pesan umum.");
+          }
+        } catch (error) {
+          console.error("Error checking admin status:", error);
+          
+          // Fallback to environment variables if API call fails
+          const fallbackAdmins = [noAdmin1, noAdmin2, noAdmin3, noAdmin4];
+          if (fallbackAdmins.includes(nomorPengguna)) {
+            if (category === "delay") {
+              console.log("Scheduling message broadcast for 8 AM tomorrow (fallback)...");
+              schedule.scheduleJob("0 8 * * *", async () => {
+                console.log("Executing scheduled message broadcast (fallback)...");
+                await getData(idMessage, messageText);
+              });
+            } else {
+              console.log("Executing immediate message broadcast (fallback)...");
+              await getData(idMessage, messageText);
+            }
           }
         }
         return;
@@ -279,6 +311,7 @@ const schedulePesalirNotifications = async () => {
     // Fetch schedule data
     const scheduleResponse = await axios.get(`${API}?action=petugas-pesalir`);
     const attendanceResponse = await axios.get(`${APIPESALIR}?action=read`);
+    const adminResponse = await axios.get(`${API}?action=read-admin`);
     
     // Process attendance data to find backup officers
     const attendanceData = attendanceResponse.data.records;
@@ -297,9 +330,11 @@ const schedulePesalirNotifications = async () => {
       .sort((a, b) => officerAttendance[a] - officerAttendance[b])
       .slice(0, 3);
     
+    // Get admin numbers from API response
+    const adminNumbers = adminResponse.data.records.map(admin => admin.no);
+    
     // Schedule daily check at 8 AM
-    // schedule.scheduleJob("0 8 * * *", async () => {
-    schedule.scheduleJob("0 12 * * *", async () => {
+    schedule.scheduleJob("0 8 * * *", async () => {
       console.log("Running PESALIR notification check...");
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -342,7 +377,6 @@ const schedulePesalirNotifications = async () => {
           // Also send notification to admins
           const adminMessage = `🔔 *INFORMASI JADWAL PESALIR HARI INI*\n\nPetugas: ${officerName} (${officerNumber})\nPengawas: ${supervisorName} (${supervisorNumber || "Tidak Ada"})\n\n${backupMessage}`;
           
-          const adminNumbers = [noAdmin1, noAdmin2, noAdmin3, noAdmin4];
           for (const admin of adminNumbers) {
             if (admin !== officerNumber && admin !== supervisorNumber) {
               await client.sendMessage(`${admin}@c.us`, adminMessage);
