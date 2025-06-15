@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>KAWAN Bot QR Code</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+        #qrcode {
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .connected {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .waiting {
+            background-color: #2196F3;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="qrcode">
+        <img id="qr-image" src="" alt="QR Code will appear here" style="display: none;">
+    </div>
+    <div id="status" class="status waiting">Waiting for QR Code...</div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const sessionId = 'default-session';
+
+        socket.emit('create-session', sessionId);
+
+        socket.on('qr', ({ url }) => {
+            document.getElementById('qr-image').src = url;
+            document.getElementById('qr-image').style.display = 'block';
+            document.getElementById('status').textContent = 'Scan QR Code to connect';
+            document.getElementById('status').className = 'status waiting';
+        });
+
+        socket.on('ready', () => {
+            document.getElementById('qr-image').style.display = 'none';
+            document.getElementById('status').textContent = 'WhatsApp Connected!';
+            document.getElementById('status').className = 'status connected';
+        });
+    </script>
+</body>
+</html>
