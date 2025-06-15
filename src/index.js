@@ -217,7 +217,6 @@ const saveMessage = async (message) => {
     if (message.id.remote.includes("@c.us") && message.type === "chat") {
       if (message.body.toLowerCase().includes("kirim-pesan-umum")) {
         const [, idMessage, category, messageText] = message.body
-          .toLowerCase()
           .split("::");
         const nomorPengguna = contactId.replace("@c.us", "");
 
