@@ -146,6 +146,11 @@ const getData = async (idMessage, messageText) => {
             messageText,
             replacementData
           );
+          // Add validation and logging before sending
+          if (!element.no || !newString) {
+            console.error(`Invalid recipient or message: no='${element.no}', message='${newString}'`);
+            continue;
+          }
           await client.sendMessage(`${element.no}@c.us`, newString);
 
           const date = new Date();
@@ -228,8 +233,8 @@ const saveMessage = async (message) => {
           // Check if sender is an admin
           if (adminNumbers.includes(parseInt(nomorPengguna)) || adminNumbers.includes(nomorPengguna)) {
             if (category === "delay") {
-              console.log("Scheduling message broadcast for 8 AM tomorrow...");
-              schedule.scheduleJob("0 8 * * *", async () => {
+              console.log("Scheduling message broadcast for 7:30 AM tomorrow...");
+              schedule.scheduleJob("0 7 * * *", async () => {
                 console.log("Executing scheduled message broadcast...");
                 await getData(idMessage, messageText);
               });
@@ -248,8 +253,8 @@ const saveMessage = async (message) => {
           const fallbackAdmins = [noAdmin1, noAdmin2, noAdmin3, noAdmin4];
           if (fallbackAdmins.includes(nomorPengguna)) {
             if (category === "delay") {
-              console.log("Scheduling message broadcast for 8 AM tomorrow (fallback)...");
-              schedule.scheduleJob("0 8 * * *", async () => {
+              console.log("Scheduling message broadcast for 7:30 AM tomorrow (fallback)...");
+              schedule.scheduleJob("0 7 * * *", async () => {
                 console.log("Executing scheduled message broadcast (fallback)...");
                 await getData(idMessage, messageText);
               });
@@ -332,8 +337,8 @@ const schedulePesalirNotifications = async () => {
     // Get admin numbers from API response
     const adminNumbers = adminResponse.data.records.map(admin => admin.no);
     
-    // Schedule daily check at 8 AM
-    schedule.scheduleJob("0 8 * * *", async () => {
+    // Schedule daily check at 7 AM
+    schedule.scheduleJob("0 7 * * *", async () => {
       console.log("Running PESALIR notification check...");
       const today = new Date();
       today.setHours(0, 0, 0, 0);
