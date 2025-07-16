@@ -5,3 +5,7 @@
 
 `the documentation access: `
 [Dokumentasi Wa Bot (on progress)](https://rii92.github.io/documentation-rii92/docs/chatbot-kawan/install)
+
+`dialogflow dan app sheet: `
+[Siapkan Dialogflow dan app sheet bisa di tonton di menit 05.00 - 17.36 ](https://www.youtube.com/watch?v=vvPfnblXnHc&ab_channel=RioFebri)
+
