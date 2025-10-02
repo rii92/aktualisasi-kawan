@@ -332,7 +332,7 @@ const schedulePesalirNotifications = async () => {
     // Sort officers by attendance (least to most)
     const backupOfficers = Object.keys(officerAttendance)
       .sort((a, b) => officerAttendance[a] - officerAttendance[b])
-      .slice(0, 3);
+      .slice(0, 6);
     
     // Get admin numbers from API response
     const adminNumbers = adminResponse.data.records.map(admin => admin.no);
@@ -359,7 +359,7 @@ const schedulePesalirNotifications = async () => {
           const supervisorNumber = duty.Nomor_Pengawas;
           
           // Create backup officer message
-          const backupMessage = `🔔 *INFORMASI BACKUP PESALIR*\n\nJika berhalangan hadir hari ini, berikut adalah 3 petugas dengan jadwal paling sedikit yang dapat menggantikan:\n\n1. ${backupOfficers[0]}\n2. ${backupOfficers[1]}\n3. ${backupOfficers[2]}\n\nMohon koordinasinya. Terima kasih.`;
+          const backupMessage = `🔔 *INFORMASI BACKUP PESALIR*\n\nJika berhalangan hadir hari ini, berikut adalah 3 petugas dengan jadwal paling sedikit yang dapat menggantikan:\n\n1. ${backupOfficers[1]}\n2. ${backupOfficers[2]}\n3. ${backupOfficers[3]}\n4. ${backupOfficers[4]}\n5. ${backupOfficers[5]}\n\nMohon koordinasinya. Terima kasih.`;
           
           // Send notification to officer with backup info
           const officerMessage = `🔔 *PENGINGAT JADWAL PESALIR*\n\nSelamat pagi ${officerName}!\nAnda dijadwalkan bertugas hari ini sebagai petugas PESALIR.\nMohon hadir tepat waktu dan melaksanakan tugas sesuai SOP.\n\n${backupMessage}`;
