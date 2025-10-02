@@ -92,7 +92,7 @@ const useTemplateMessageKawan = async (message, contact) => {
     await chat.sendStateTyping();
 
     const response = await cekSpreadsheetMessage(message.body);
-    const answer = response || (await runDialogFlow(message.body));
+    const answer = response || (await runDialogFlow(message.body, contact));
 
     const typingTime = Math.min((answer.message.length / 200) * 60000, 2000);
     await delay(typingTime);

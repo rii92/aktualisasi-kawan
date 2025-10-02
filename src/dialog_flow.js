@@ -6,10 +6,10 @@ require("dotenv").config();
  * Send a query to the dialogflow agent, and return the query result.
  * @param {string} projectId The project to be used
  */
-const runDialogFlow = async (message) => {
+const runDialogFlow = async (message, contact) => {
   // A unique identifier for the given session
   const projectId = process.env.PROJECT_ID;
-  const sessionId = uuid.v4();
+  const sessionId = "wa_" + contact.id.user;
 
   // Create a new session
   const sessionClient = new dialogflow.SessionsClient({
