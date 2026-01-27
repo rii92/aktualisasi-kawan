@@ -9,7 +9,7 @@ require("dotenv").config();
 const runDialogFlow = async (message, contact) => {
   // A unique identifier for the given session
   const projectId = process.env.PROJECT_ID;
-  const sessionId = "wa_" + contact.id.user;
+  const sessionId = "wa_" + contact;
 
   // Create a new session
   const sessionClient = new dialogflow.SessionsClient({

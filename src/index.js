@@ -7,6 +7,7 @@ const { runDialogFlow } = require("./dialog_flow");
 const { cekSpreadsheetMessage } = require("./message_spreadsheet");
 const { replaceMultipleStringsAll } = require("./replace-string.js");
 const schedule = require("node-schedule");
+const { MessageMedia } = require('whatsapp-web.js');
 
 // Load environment variables
 dotenv.config();
@@ -18,8 +19,18 @@ const {
 
 // Initialize WhatsApp client
 const client = new Client({
-  authStrategy: new LocalAuth(),
-});
+        authStrategy: new LocalAuth(),
+        puppeteer: {
+            headless: false,
+            args: ["--disable-popup-blocking"],
+            executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+        },
+        // temp
+        webVersionCache: {
+            type: 'remote',
+            remotePath: `https://raw.githubusercontent.com/wppconnect-team/wa-version/refs/heads/main/html/2.3000.1031490220-alpha.html`,    
+        },
+    });
 
 // Store user states
 const userState = {};
@@ -91,18 +102,18 @@ const useTemplateMessageKawan = async (message, contact) => {
     await chat.sendSeen();
     await chat.sendStateTyping();
 
-    const response = await cekSpreadsheetMessage(message.body);
-    const answer = response || (await runDialogFlow(message.body, contact));
+    const response = await cekSpreadsheetMessage(message["_data"]["body"]);
+    const answer = response || (await runDialogFlow(message["_data"]["body"], contact));
 
     const typingTime = Math.min((answer.message.length / 200) * 60000, 2000);
     await delay(typingTime);
 
-    await client.sendMessage(contact.id._serialized, answer.message.toString());
+    await client.sendMessage(contact, answer.message.toString());
 
     // Save message records
     const saveRecordURL = `${API}?id=${uuidv4()}&action=save-record-message`;
     await axios.get(
-      `${saveRecordURL}&no=${contact.id.user}&name=${contact.name}&message=${message.body}&status=receive`
+      `${saveRecordURL}&no=${contact["_data"]["id"]["id"]}&name=${contact["_data"]["id"]["id"]}&message=${message["_data"]["body"]}&status=receive`
     );
     await axios.get(
       `${saveRecordURL}&no=${noChatbot}&name=BotKawan&message=${answer.message}&status=send`
@@ -129,7 +140,7 @@ const addTextVariation = (text, index) => {
 };
 
 // Helper to manage message sending with anti-spam measures
-const sendMessageWithAntiSpam = async (phoneNumber, message, contact) => {
+const sendMessageWithAntiSpam = async (phoneNumber, message, contact, pathFile) => {
   try {
     // Simulate typing with natural duration
     const baseTypingTime = Math.max((message.length / 200) * 1500, 500);
@@ -149,6 +160,12 @@ const sendMessageWithAntiSpam = async (phoneNumber, message, contact) => {
     }
 
     // Send message
+    if (pathFile && pathFile !== "") {
+      const media = MessageMedia.fromFilePath(
+        pathFile
+      );
+      await client.sendMessage(`${phoneNumber}@c.us`, media);
+    }
     await client.sendMessage(`${phoneNumber}@c.us`, message);
 
     return true;
@@ -221,11 +238,13 @@ const getData = async (idMessage, messageText) => {
         // Add text variation (only normalize spacing, no weird characters)
         const messageWithVariation = addTextVariation(newString, index);
 
+        pathFile = element.filepath;
         // Send message with anti-spam measures
         const sent = await sendMessageWithAntiSpam(
           element.no,
           messageWithVariation,
-          element
+          element,
+          pathFile
         );
 
         if (sent) {
@@ -315,7 +334,9 @@ client.on("message", async (message) => {
   ) {
     client.sendPresenceAvailable();
     await saveMessage(message);
-    console.log(message["_data"]["to"]);
+    // console.log(message["_data"]["from"]);
+    // console.log(message);
+    
     client.sendPresenceUnavailable();
   } else {
     console.log("Old message ignored.");
@@ -324,11 +345,11 @@ client.on("message", async (message) => {
 
 const saveMessage = async (message) => {
   try {
-    const contactId = await message["_data"]["to"];
-
-    if (message.id.remote.includes("@c.us") && message.type === "chat") {
-      if (message.body.toLowerCase().includes("kirim-pesan-umum")) {
-        const [, idMessage, category, messageText] = message.body.split("::");
+    const contactId = await message["_data"]["from"];
+    console.log("test contactId:", contactId);
+    if (contactId.includes("@c.us") && message["_data"]["type"] === "chat") {
+      if (message["_data"]["body"].toLowerCase().includes("kirim-pesan-umum")) {
+        const [, idMessage, category, messageText] = message["_data"]["body"].split("::");
         const nomorPengguna = contactId.replace("@c.us", "");
 
         try {
@@ -389,6 +410,7 @@ const saveMessage = async (message) => {
         return;
       }
 
+      // UNTUK PESAN OTOMATIS CHATBOT DAN ADMIN, DI NONAKTIFKAN SEMENTARA
       //       const command = message.body.toLowerCase();
       //       if (!userState[contactId] || userState[contactId] === null) {
       //         switch (command) {
@@ -420,7 +442,7 @@ const saveMessage = async (message) => {
       //         if (command === "00") {
       //           await handleResetMode(message, contactId);
       //         } else if (userState[contactId] === "bot") {
-      //           await useTemplateMessageKawan(message, contact);
+      //           await useTemplateMessageKawan(message, contactId);
       //         }
       //       }
     }
