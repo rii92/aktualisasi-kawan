@@ -19,17 +19,24 @@ const {
 
 // Initialize WhatsApp client
 const client = new Client({
-        authStrategy: new LocalAuth(),
-        puppeteer: {
-            headless: false,
-            args: ["--disable-popup-blocking"],
-            executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-        },
-        // temp
-        webVersionCache: {
-            type: 'remote',
-            remotePath: `https://raw.githubusercontent.com/wppconnect-team/wa-version/refs/heads/main/html/2.3000.1031490220-alpha.html`,    
-        },
+    authStrategy: new LocalAuth(),
+    puppeteer: {
+      headless: true,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--disable-popup-blocking",
+      ],
+      executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      dumpio: true,
+    },
+    // webVersionCache sementara dinonaktifkan untuk debugging/auth flow
+    // webVersionCache: {
+    //     type: 'remote',
+    //     remotePath: `https://raw.githubusercontent.com/wppconnect-team/wa-version/refs/heads/main/html/2.3000.1031490220-alpha.html`,    
+    // },
     });
 
 // Store user states
@@ -319,12 +326,39 @@ client.on("ready", () => {
   schedulePesalirNotifications();
 });
 
-client.on("authenticated", () => {
-  console.log("AUTHENTICATED");
+client.on("authenticated", (session) => {
+  console.log("AUTHENTICATED", new Date().toISOString());
+  try {
+    console.log("authenticated session:", session || "<no-session-data>");
+    console.log("client.info (may be empty until ready):", client.info || null);
+  } catch (err) {
+    console.error("Error logging client info on authenticated:", err);
+  }
 });
 
 client.on("auth_failure", (msg) => {
   console.error("AUTHENTICATION FAILURE", msg);
+});
+
+// Additional diagnostic event logging to help trace auth -> ready flow
+client.on("change_state", (state) => {
+  console.log("CHANGE_STATE", state, new Date().toISOString());
+});
+
+client.on("disconnected", (reason) => {
+  console.log("DISCONNECTED", reason, new Date().toISOString());
+});
+
+client.on("remote_session_saved", () => {
+  console.log("REMOTE_SESSION_SAVED", new Date().toISOString());
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("UNCAUGHT_EXCEPTION", err && err.stack ? err.stack : err);
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("UNHANDLED_REJECTION", reason);
 });
 
 client.on("message", async (message) => {
@@ -345,11 +379,22 @@ client.on("message", async (message) => {
 
 const saveMessage = async (message) => {
   try {
-    const contactId = await message["_data"]["from"];
-    console.log("test contactId:", contactId);
-    if (contactId.includes("@c.us") && message["_data"]["type"] === "chat") {
-      if (message["_data"]["body"].toLowerCase().includes("kirim-pesan-umum")) {
-        const [, idMessage, category, messageText] = message["_data"]["body"].split("::");
+    // Normalize contact id and message body to handle different id suffixes
+    const contactIdRaw = message.from || (message["_data"] && message["_data"]["from"]) || "";
+    const contactId = contactIdRaw.toString();
+    const bodyRaw = message.body || (message["_data"] && message["_data"]["body"]) || "";
+    const body = bodyRaw.toString();
+    const msgType = message.type || (message["_data"] && message["_data"]["type"]) || "";
+
+    console.log("saveMessage contactId:", contactId, "type:", msgType, "body:", body);
+
+    // Accept common direct-chat id suffixes (c.us, s.whatsapp.net, lid)
+    if (
+      (contactId.includes("@c.us") || contactId.includes("@s.whatsapp.net") || contactId.includes("@lid")) &&
+      msgType === "chat"
+    ) {
+      if (body.toLowerCase().includes("kirim-pesan-umum")) {
+        const [, idMessage, category, messageText] = body.split("::");
         const nomorPengguna = contactId.replace("@c.us", "");
 
         try {
@@ -411,40 +456,40 @@ const saveMessage = async (message) => {
       }
 
       // UNTUK PESAN OTOMATIS CHATBOT DAN ADMIN, DI NONAKTIFKAN SEMENTARA
-      //       const command = message.body.toLowerCase();
-      //       if (!userState[contactId] || userState[contactId] === null) {
-      //         switch (command) {
-      //           case "1":
-      //             await handleAdminMode(message, contactId);
-      //             break;
-      //           case "2":
-      //             await handleBotMode(message, contactId);
-      //             break;
-      //           case "00":
-      //             await handleResetMode(message, contactId);
-      //             break;
-      //           default:
-      //             await modeTyping(
-      //               message,
-      //               `Selamat datang di Layanan WhatsApp BPS Kabupaten Sanggau
-      // Silahkan pilih layanan yang Anda inginkan:
-      // 1. Hubungi Admin BPS Sanggau
-      // 2. Chatbot Pelayanan Publik
-      // Kirim "1" untuk menghubungi Admin atau "2" untuk menggunakan Chatbot
-      // Untuk kembali ke menu awal kirim "00"`,
-      //               contactId
-      //             );
-      //         }
-      //       } else if (
-      //         userState[contactId] === "admin" ||
-      //         userState[contactId] === "bot"
-      //       ) {
-      //         if (command === "00") {
-      //           await handleResetMode(message, contactId);
-      //         } else if (userState[contactId] === "bot") {
-      //           await useTemplateMessageKawan(message, contactId);
-      //         }
-      //       }
+            const command = body.toLowerCase();
+            if (!userState[contactId] || userState[contactId] === null) {
+              switch (command) {
+                case "1":
+                  await handleAdminMode(message, contactId);
+                  break;
+                case "2":
+                  await handleBotMode(message, contactId);
+                  break;
+                case "00":
+                  await handleResetMode(message, contactId);
+                  break;
+                default:
+                  await modeTyping(
+                    message,
+                    `Selamat datang di Layanan WhatsApp BPS Kabupaten Sanggau
+      Silahkan pilih layanan yang Anda inginkan:
+      1. Hubungi Admin BPS Sanggau
+      2. Chatbot Pelayanan Publik
+      Kirim "1" untuk menghubungi Admin atau "2" untuk menggunakan Chatbot
+      Untuk kembali ke menu awal kirim "00"`,
+                    contactId
+                  );
+              }
+            } else if (
+              userState[contactId] === "admin" ||
+              userState[contactId] === "bot"
+            ) {
+              if (command === "00") {
+                await handleResetMode(message, contactId);
+              } else if (userState[contactId] === "bot") {
+                await useTemplateMessageKawan(message, contactId);
+              }
+            }
     }
   } catch (error) {
     console.log("Error in saveMessage:", error);
