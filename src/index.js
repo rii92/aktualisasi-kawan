@@ -14,7 +14,7 @@ dotenv.config();
 const {
   APIKEY: API,
   APIKEYPESALIR: APIPESALIR,
-  APIKEY: noChatbot,
+  No_CHATBOT: noChatbot,
 } = process.env;
 
 // Initialize WhatsApp client
@@ -120,7 +120,7 @@ const useTemplateMessageKawan = async (message, contact) => {
     // Save message records
     const saveRecordURL = `${API}?id=${uuidv4()}&action=save-record-message`;
     await axios.get(
-      `${saveRecordURL}&no=${contact["_data"]["id"]["id"]}&name=${contact["_data"]["id"]["id"]}&message=${message["_data"]["body"]}&status=receive`
+      `${saveRecordURL}&no=${contact}&name=${contact}&message=${message["_data"]["body"]}&status=receive`
     );
     await axios.get(
       `${saveRecordURL}&no=${noChatbot}&name=BotKawan&message=${answer.message}&status=send`
@@ -379,23 +379,25 @@ client.on("message", async (message) => {
 
 const saveMessage = async (message) => {
   try {
+    // console.log(message);
     // Normalize contact id and message body to handle different id suffixes
-    const contactIdRaw = message.from || (message["_data"] && message["_data"]["from"]) || "";
-    const contactId = contactIdRaw.toString();
-    const bodyRaw = message.body || (message["_data"] && message["_data"]["body"]) || "";
-    const body = bodyRaw.toString();
-    const msgType = message.type || (message["_data"] && message["_data"]["type"]) || "";
+  
+    //mendapatkan nomor hp
+    const contact = await message.getContact();
+    console.log(message.from);
+    const number = contact.number;
+    console.log("nomor pengirim pesan: ", number)
+  
+    // mendapatkan pesan
+    const isiPesan = message.body;
+    console.log("isi pesan: ", isiPesan)
 
-    console.log("saveMessage contactId:", contactId, "type:", msgType, "body:", body);
-
+    console.log("Apakah group: ", contact.isGroup)
     // Accept common direct-chat id suffixes (c.us, s.whatsapp.net, lid)
-    if (
-      (contactId.includes("@c.us") || contactId.includes("@s.whatsapp.net") || contactId.includes("@lid")) &&
-      msgType === "chat"
-    ) {
-      if (body.toLowerCase().includes("kirim-pesan-umum")) {
-        const [, idMessage, category, messageText] = body.split("::");
-        const nomorPengguna = contactId.replace("@c.us", "");
+    if (message.from.includes("@lid")) {
+      if (isiPesan.toLowerCase().includes("kirim-pesan-umum")) {
+        const [, idMessage, category, messageText] = isiPesan.split("::");
+        const nomorPengguna = number;
 
         try {
           // Fetch admin data from API
@@ -424,7 +426,7 @@ const saveMessage = async (message) => {
           } else {
             console.log(`Unauthorized broadcast attempt from ${nomorPengguna}`);
             await client.sendMessage(
-              contactId,
+              `${nomorPengguna}@c.us`,
               "Maaf, Anda tidak memiliki izin untuk mengirim pesan umum."
             );
           }
@@ -456,17 +458,17 @@ const saveMessage = async (message) => {
       }
 
       // UNTUK PESAN OTOMATIS CHATBOT DAN ADMIN, DI NONAKTIFKAN SEMENTARA
-            const command = body.toLowerCase();
-            if (!userState[contactId] || userState[contactId] === null) {
+            const command = isiPesan.toLowerCase();
+            if (!userState[`${number}@c.us`] || userState[`${number}@c.us`] === null) {
               switch (command) {
                 case "1":
-                  await handleAdminMode(message, contactId);
+                  await handleAdminMode(message, `${number}@c.us`);
                   break;
                 case "2":
-                  await handleBotMode(message, contactId);
+                  await handleBotMode(message, `${number}@c.us`);
                   break;
                 case "00":
-                  await handleResetMode(message, contactId);
+                  await handleResetMode(message, `${number}@c.us`);
                   break;
                 default:
                   await modeTyping(
@@ -477,17 +479,17 @@ const saveMessage = async (message) => {
       2. Chatbot Pelayanan Publik
       Kirim "1" untuk menghubungi Admin atau "2" untuk menggunakan Chatbot
       Untuk kembali ke menu awal kirim "00"`,
-                    contactId
+                    `${number}@c.us`
                   );
               }
             } else if (
-              userState[contactId] === "admin" ||
-              userState[contactId] === "bot"
+              userState[`${number}@c.us`] === "admin" ||
+              userState[`${number}@c.us`] === "bot"
             ) {
               if (command === "00") {
-                await handleResetMode(message, contactId);
-              } else if (userState[contactId] === "bot") {
-                await useTemplateMessageKawan(message, contactId);
+                await handleResetMode(message, `${number}@c.us`);
+              } else if (userState[`${number}@c.us`] === "bot") {
+                await useTemplateMessageKawan(message, `${number}@c.us`);
               }
             }
     }
