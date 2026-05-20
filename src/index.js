@@ -457,6 +457,41 @@ const saveMessage = async (message) => {
         return;
       }
 
+      // Handle UPDATE command: #UPDATE_{kodesls}_{jumlah}_{kategori}
+      const updateMatch = isiPesan.match(/^#UPDATE_(\w+)_(\d+)_(\w+)$/i);
+      if (updateMatch) {
+        const [, kodesls, jumlah, kategori] = updateMatch;
+        const id = uuidv4();
+        const no = number;
+
+        try {
+          const chat = await message.getChat();
+          await chat.sendSeen();
+          await chat.sendStateTyping();
+
+          // Check if user's phone number is registered
+          const checkResponse = await axios.get(`${API}?action=readDBSLS`);
+          const records = checkResponse.data.records;
+          const isRegistered = records.some(
+            (record) => String(record.noHPMitra) === String(no)
+          );
+
+          if (!isRegistered) {
+            await client.sendMessage(`${number}@c.us`, "anda tidak punya wewenang update data");
+            return;
+          }
+
+          const updateUrl = `${API}?action=save-record-message-sls&kodesls=${kodesls}&no=${no}&jumlah=${jumlah}&kategori=${kategori}&id=${id}`;
+          await axios.get(updateUrl);
+
+          await client.sendMessage(`${number}@c.us`, "data sudah terupdate");
+        } catch (error) {
+          console.error("Error processing UPDATE command:", error);
+          await client.sendMessage(`${number}@c.us`, "data gagal diupdate");
+        }
+        return;
+      }
+
       // UNTUK PESAN OTOMATIS CHATBOT DAN ADMIN, DI NONAKTIFKAN SEMENTARA
             const command = isiPesan.toLowerCase();
             if (!userState[`${number}@c.us`] || userState[`${number}@c.us`] === null) {
