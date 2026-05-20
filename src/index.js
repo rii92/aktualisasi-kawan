@@ -503,6 +503,39 @@ const saveMessage = async (message) => {
         return;
       }
 
+      // Handle CHECKSLS command
+      if (isiPesan.trim().toUpperCase() === "#CHECKSLS") {
+        try {
+          const chat = await message.getChat();
+          await chat.sendSeen();
+          await chat.sendStateTyping();
+
+          const checkResponse = await axios.get(`${API}?action=readDBSLS`);
+          const records = checkResponse.data.records;
+          const userRecords = records.filter(
+            (record) => String(record.noHPMitra) === String(number)
+          );
+
+          if (userRecords.length === 0) {
+            await client.sendMessage(`${number}@c.us`, "anda tidak punya wewenang");
+            return;
+          }
+
+          let listMessage = "*Daftar SLS Anda:*\n\n";
+          userRecords.forEach((record, index) => {
+            listMessage += `${index + 1}. ${record.kodeSLS} - ${record.nmsls}\n`;
+          });
+
+          listMessage += `\nTotal SLS: ${userRecords.length}. Kirim #UPDATE_{kodesls}_{jumlah}_{kategori} untuk update data. Contoh: #UPDATE_SLS001_10_aktif`;
+
+          await client.sendMessage(`${number}@c.us`, listMessage);
+        } catch (error) {
+          console.error("Error processing CHECKSLS command:", error);
+          await client.sendMessage(`${number}@c.us`, "gagal mengambil data sls");
+        }
+        return;
+      }
+
       // UNTUK PESAN OTOMATIS CHATBOT DAN ADMIN, DI NONAKTIFKAN SEMENTARA
             const command = isiPesan.toLowerCase();
             if (!userState[`${number}@c.us`] || userState[`${number}@c.us`] === null) {
