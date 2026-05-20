@@ -469,7 +469,7 @@ const saveMessage = async (message) => {
           await chat.sendSeen();
           await chat.sendStateTyping();
 
-          // Check if user's phone number is registered
+          // Check if user's phone number and kodesls are registered
           const checkResponse = await axios.get(`${API}?action=readDBSLS`);
           const records = checkResponse.data.records;
           const isRegistered = records.some(
@@ -478,6 +478,17 @@ const saveMessage = async (message) => {
 
           if (!isRegistered) {
             await client.sendMessage(`${number}@c.us`, "anda tidak punya wewenang update data");
+            return;
+          }
+
+          const slsMatch = records.some(
+            (record) =>
+              String(record.noHPMitra) === String(no) &&
+              String(record.kodeSLS).startsWith(String(kodesls))
+          );
+
+          if (!slsMatch) {
+            await client.sendMessage(`${number}@c.us`, "sls tidak tepat");
             return;
           }
 
