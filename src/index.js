@@ -457,12 +457,19 @@ const saveMessage = async (message) => {
         return;
       }
 
-      // Handle UPDATE command: #UPDATE_{kodesls}_{jumlah}_{kategori}
-      const updateMatch = isiPesan.match(/^#UPDATE_(\w+)_(\d+)_(\w+)$/i);
+      // Handle UPDATE command: #UPDATE_{kodesls}_{jumlah}_{kategori}_{jumlahSubmit}_{statusSls}
+      const updateMatch = isiPesan.match(/^#UPDATE_(\w+)_(\d+)_(\w+)_(\d+)_(\w+)$/i);
       if (updateMatch) {
-        const [, kodesls, jumlah, kategori] = updateMatch;
+        const [, kodesls, jumlah, kategori, jumlahSubmit, statusSls] = updateMatch;
         const id = uuidv4();
         const no = number;
+
+        // Validate statusSls
+        const statusLower = statusSls.toLowerCase();
+        if (statusLower !== "selesai" && statusLower !== "belum") {
+          await client.sendMessage(`${number}@c.us`, "statusSls harus 'selesai' atau 'belum'");
+          return;
+        }
 
         try {
           const chat = await message.getChat();
@@ -492,7 +499,8 @@ const saveMessage = async (message) => {
             return;
           }
 
-          const updateUrl = `${API}?action=save-record-message-sls&kodesls=${kodesls}&no=${no}&jumlah=${jumlah}&kategori=${kategori}&id=${id}`;
+          const baseUrl = `https://script.google.com/macros/s/AKfycbxryhvmXetPamDTnX0PwgdQmo0t7dluEPIPHajXMRb4j0Res05WrPbM-lEMfBG3_39oMQ/exec`;
+          const updateUrl = `${baseUrl}?action=save-record-message-sls&kodesls=${kodesls}&no=${no}&jumlah=${jumlah}&kategori=${kategori}&id=${id}&jumlahSubmit=${jumlahSubmit}&statusSls=${statusLower}`;
           await axios.get(updateUrl);
 
           await client.sendMessage(`${number}@c.us`, "data sudah terupdate");
@@ -526,7 +534,7 @@ const saveMessage = async (message) => {
             listMessage += `${index + 1}. ${record.kodeSLS} - ${record.nmsls}\n`;
           });
 
-          listMessage += `\nTotal SLS: ${userRecords.length}. Kirim #UPDATE_{kodesls}_{jumlah}_{kategori} untuk update data. Contoh: #UPDATE_SLS001_10_aktif`;
+          listMessage += `\nTotal SLS: ${userRecords.length}. Kirim #UPDATE_{kodesls}_{jumlah}_{kategori}_{jumlahSubmit}_{statusSls} untuk update data SLS. Contoh: #UPDATE_SLS001_10_KategoriA_5_Selesai`;
 
           await client.sendMessage(`${number}@c.us`, listMessage);
         } catch (error) {
