@@ -417,16 +417,25 @@ const saveMessage = async (message) => {
         return;
       }
 
-      const updateMatch = isiPesan.match(/^#UPDATE_(\w+)_(\d+)_(\w+)_(\d+)_(\w+)$/i);
+      const updateMatch = isiPesan.match(/^#UPDATE_(\w+)_(\d+)_(\w+)_(\d+)(?:_(\w+))?$/i);
       if (updateMatch) {
         const [, kodesls, jumlah, kategori, jumlahSubmit, statusSls] = updateMatch;
         const id = uuidv4();
         const no = number;
-        const statusLower = statusSls.toLowerCase();
-        if (statusLower !== "selesai" && statusLower !== "belum") {
+
+        if (kategori.toUpperCase() !== "PML" && kategori.toUpperCase() !== "PPL") {
+          await client.sendMessage(`${number}@c.us`, "kategori harus PML atau PPL");
+          return;
+        }
+
+        const isPML = kategori.toUpperCase() === "PML";
+        const statusLower = isPML ? "" : (statusSls || "").toLowerCase();
+
+        if (!isPML && statusLower !== "selesai" && statusLower !== "belum") {
           await client.sendMessage(`${number}@c.us`, "statusSls harus 'selesai' atau 'belum'");
           return;
         }
+
         try {
           const chat = await message.getChat();
           await chat.sendSeen();
@@ -470,7 +479,7 @@ const saveMessage = async (message) => {
           userRecords.forEach((record, index) => {
             listMessage += `${index + 1}. ${record.kodeSLS} - ${record.nmsls}\n`;
           });
-          listMessage += `\nTotal SLS: ${userRecords.length}. Kirim #UPDATE_{kodesls}_{jumlah}_{kategori}_{jumlahSubmit}_{statusSls} untuk update data SLS. Contoh: #UPDATE_SLS001_10_KategoriA_5_Selesai`;
+          listMessage += `\nTotal SLS: ${userRecords.length}.\n\nFormat UPDATE:\n- PML: #UPDATE_{kodesls}_{jumlah}_PML_{jumlahSubmit}\n- PPL: #UPDATE_{kodesls}_{jumlah}_PPL_{jumlahSubmit}_{statusSls}\n\nContoh:\n- #UPDATE_SLS001_10_PML_5\n- #UPDATE_SLS001_10_PPL_5_Selesai`;
           await client.sendMessage(`${number}@c.us`, listMessage);
         } catch (error) {
           console.error("Error processing CHECKSLS command:", error);

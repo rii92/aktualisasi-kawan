@@ -457,16 +457,22 @@ const saveMessage = async (message) => {
         return;
       }
 
-      // Handle UPDATE command: #UPDATE_{kodesls}_{jumlah}_{kategori}_{jumlahSubmit}_{statusSls}
-      const updateMatch = isiPesan.match(/^#UPDATE_(\w+)_(\d+)_(\w+)_(\d+)_(\w+)$/i);
+      // Handle UPDATE command: #UPDATE_{kodesls}_{jumlah}_{kategori}_{jumlahSubmit}[_{statusSls}]
+      const updateMatch = isiPesan.match(/^#UPDATE_(\w+)_(\d+)_(\w+)_(\d+)(?:_(\w+))?$/i);
       if (updateMatch) {
         const [, kodesls, jumlah, kategori, jumlahSubmit, statusSls] = updateMatch;
         const id = uuidv4();
         const no = number;
 
-        // Validate statusSls
-        const statusLower = statusSls.toLowerCase();
-        if (statusLower !== "selesai" && statusLower !== "belum") {
+        if (kategori.toUpperCase() !== "PML" && kategori.toUpperCase() !== "PPL") {
+          await client.sendMessage(`${number}@c.us`, "kategori harus PML atau PPL");
+          return;
+        }
+
+        const isPML = kategori.toUpperCase() === "PML";
+        const statusLower = isPML ? "" : (statusSls || "").toLowerCase();
+
+        if (!isPML && statusLower !== "selesai" && statusLower !== "belum") {
           await client.sendMessage(`${number}@c.us`, "statusSls harus 'selesai' atau 'belum'");
           return;
         }
@@ -480,7 +486,7 @@ const saveMessage = async (message) => {
           const checkResponse = await axios.get(`${API}?action=readDBSLS`);
           const records = checkResponse.data.records;
           const isRegistered = records.some(
-            (record) => String(record.noHPMitra) === String(no)
+            (record) => String(record.noHPMitra) === String(no) || String(record.noHpPml)=== String(no)
           );
 
           if (!isRegistered) {
@@ -490,8 +496,10 @@ const saveMessage = async (message) => {
 
           const slsMatch = records.some(
             (record) =>
-              String(record.noHPMitra) === String(no) &&
-              String(record.kodeSLS).startsWith(String(kodesls))
+              (String(record.noHPMitra) === String(no) &&
+              String(record.kodeSLS).startsWith(String(kodesls))) ||
+              (String(record.noHpPml) === String(no) &&
+              String(record.kodeSLS).startsWith(String(kodesls)))
           );
 
           if (!slsMatch) {
@@ -521,7 +529,7 @@ const saveMessage = async (message) => {
           const checkResponse = await axios.get(`${API}?action=readDBSLS`);
           const records = checkResponse.data.records;
           const userRecords = records.filter(
-            (record) => String(record.noHPMitra) === String(number)
+            (record) => String(record.noHPMitra) === String(number) || String(record.noHpPml) === String(number)
           );
 
           if (userRecords.length === 0) {
@@ -534,7 +542,7 @@ const saveMessage = async (message) => {
             listMessage += `${index + 1}. ${record.kodeSLS} - ${record.nmsls}\n`;
           });
 
-          listMessage += `\nTotal SLS: ${userRecords.length}. Kirim #UPDATE_{kodesls}_{jumlah}_{kategori}_{jumlahSubmit}_{statusSls} untuk update data SLS. Contoh: #UPDATE_SLS001_10_KategoriA_5_Selesai`;
+          listMessage += `\nTotal SLS: ${userRecords.length}.\n\nFormat UPDATE:\n- PML: #UPDATE_{kodesls}_{jumlah approve}_PML_{jumlah reject}\n- PPL: #UPDATE_{kodesls}_{jumlah Selesai Lapangan}_PPL_{jumlah Submit}_{statusSls}\n\nContoh:\n- #UPDATE_SLS001_10_PML_5\n- #UPDATE_SLS001_10_PPL_5_Selesai`;
 
           await client.sendMessage(`${number}@c.us`, listMessage);
         } catch (error) {
