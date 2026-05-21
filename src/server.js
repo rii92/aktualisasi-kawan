@@ -389,7 +389,7 @@ const saveMessage = async (message) => {
 
     console.log("Apakah group: ", contact.isGroup);
 
-    if (message.from.includes("@lid")) {
+    if (message.from.includes("@lid") || message.from.includes("@c.us") || message.from.includes("@s.whatsapp.net")) {
       if (isiPesan.toLowerCase().includes("kirim-pesan-umum")) {
         const [, idMessage, category, messageText] = isiPesan.split("::");
         const nomorPengguna = number;
@@ -442,12 +442,18 @@ const saveMessage = async (message) => {
           await chat.sendStateTyping();
           const checkResponse = await axios.get(`${API}?action=readDBSLS`);
           const records = checkResponse.data.records;
-          const isRegistered = records.some((record) => String(record.noHPMitra) === String(no));
+          const isRegistered = records.some((record) => String(record.noHPMitra) === String(no) || String(record.noHpPml) === String(no));
           if (!isRegistered) {
             await client.sendMessage(`${number}@c.us`, "anda tidak punya wewenang update data");
             return;
           }
-          const slsMatch = records.some((record) => String(record.noHPMitra) === String(no) && String(record.kodeSLS).startsWith(String(kodesls)));
+          const slsMatch = records.some(
+            (record) =>
+              (String(record.noHPMitra) === String(no) &&
+              String(record.kodeSLS).startsWith(String(kodesls))) ||
+              (String(record.noHpPml) === String(no) &&
+              String(record.kodeSLS).startsWith(String(kodesls)))
+          );
           if (!slsMatch) {
             await client.sendMessage(`${number}@c.us`, "sls tidak tepat");
             return;
@@ -479,10 +485,42 @@ const saveMessage = async (message) => {
           userRecords.forEach((record, index) => {
             listMessage += `${index + 1}. ${record.kodeSLS} - ${record.nmsls}\n`;
           });
-          listMessage += `\nTotal SLS: ${userRecords.length}.\n\nFormat UPDATE:\n- PML: #UPDATE_{kodesls}_{jumlah}_PML_{jumlahSubmit}\n- PPL: #UPDATE_{kodesls}_{jumlah}_PPL_{jumlahSubmit}_{statusSls}\n\nContoh:\n- #UPDATE_SLS001_10_PML_5\n- #UPDATE_SLS001_10_PPL_5_Selesai`;
+          listMessage += `\nTotal SLS: ${userRecords.length}.\n\nFormat UPDATE:\n- PML: #UPDATE_{kodesls}_{jumlah Approve}_PML_{jumlah Reject}\n- PPL: #UPDATE_{kodesls}_{jumlah selesai lapangan}_PPL_{jumlah Submit}_{Status SLS}\n\nContoh:\n- #UPDATE_SLS001_10_PML_5\n- #UPDATE_SLS001_10_PPL_5_Selesai`;
           await client.sendMessage(`${number}@c.us`, listMessage);
         } catch (error) {
           console.error("Error processing CHECKSLS command:", error);
+          await client.sendMessage(`${number}@c.us`, "gagal mengambil data sls");
+        }
+        return;
+      }
+
+      if (isiPesan.trim().toUpperCase() === "#CHECKSLSPML") {
+        try {
+          const chat = await message.getChat();
+          await chat.sendSeen();
+          await chat.sendStateTyping();
+
+          const checkResponse = await axios.get(`${API}?action=readDBSLS`);
+          const records = checkResponse.data.records;
+          const userRecords = records.filter(
+            (record) => String(record.noHpPml) === String(number)
+          );
+
+          if (userRecords.length === 0) {
+            await client.sendMessage(`${number}@c.us`, "anda tidak punya wewenang");
+            return;
+          }
+
+          let listMessage = "*Daftar SLS Anda:*\n\n";
+          userRecords.forEach((record, index) => {
+            listMessage += `${index + 1}. ${record.kodeSLS} - ${record.nmsls}\n`;
+          });
+
+          listMessage += `\nTotal SLS: ${userRecords.length}.\n\nFormat UPDATE:\n- PML: #UPDATE_{kodesls}_{jumlah Approve}_PML_{jumlah Reject}\n- PPL: #UPDATE_{kodesls}_{jumlah selesai lapangan}_PPL_{jumlah Submit}_{Status SLS}\n\nContoh:\n- #UPDATE_SLS001_10_PML_5\n- #UPDATE_SLS001_10_PPL_5_Selesai`;
+
+          await client.sendMessage(`${number}@c.us`, listMessage);
+        } catch (error) {
+          console.error("Error processing CHECKSLSPML command:", error);
           await client.sendMessage(`${number}@c.us`, "gagal mengambil data sls");
         }
         return;
@@ -594,4 +632,7 @@ io.on('connection', (socket) => {
 
 server.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
+  const url = `http://localhost:${port}`;
+  const cmd = process.platform === 'win32' ? `start "" "${url}"` : `xdg-open "${url}"`;
+  require('child_process').exec(cmd);
 });
