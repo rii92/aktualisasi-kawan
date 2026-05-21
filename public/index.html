@@ -1,64 +1,250 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-    <title>KAWAN Bot QR Code</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KAWAN Bot - QR Scanner</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Arial, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             margin: 0;
-            background-color: #f0f2f5;
-        }
-        #qrcode {
             padding: 20px;
+        }
+        .container {
             background: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 420px;
+            width: 100%;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: 800;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .logo span {
+            color: #25D366;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+        #qr-container {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 30px;
             margin-bottom: 20px;
+            min-height: 280px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #dee2e6;
+            transition: all 0.3s ease;
         }
-        .status {
-            padding: 10px 20px;
-            border-radius: 5px;
-            margin: 10px 0;
+        #qr-container.has-qr {
+            border: 2px solid #25D366;
         }
-        .connected {
-            background-color: #4CAF50;
+        #qr-image {
+            max-width: 220px;
+            image-rendering: pixelated;
+        }
+        #status {
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 15px;
+            margin-top: 10px;
+        }
+        .status-waiting {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status-ready {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-scan {
+            background: #cce5ff;
+            color: #004085;
+        }
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status-disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status-authenticated {
+            background: #d4edda;
+            color: #155724;
+        }
+        .step-info {
+            margin-top: 20px;
+            color: #666;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .step-info ol {
+            text-align: left;
+            padding-left: 20px;
+        }
+        .step-info ol li {
+            margin-bottom: 6px;
+        }
+        .session-info {
+            margin-top: 15px;
+            font-size: 12px;
+            color: #999;
+        }
+        .btn-restart {
+            margin-top: 15px;
+            padding: 10px 24px;
+            background: #667eea;
             color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
         }
-        .waiting {
-            background-color: #2196F3;
-            color: white;
+        .btn-restart:hover {
+            background: #5a67d8;
+        }
+        @media (max-width: 480px) {
+            .container {
+                padding: 24px;
+            }
+            .logo {
+                font-size: 22px;
+            }
         }
     </style>
 </head>
 <body>
-    <div id="qrcode">
-        <img id="qr-image" src="" alt="QR Code will appear here" style="display: none;">
+    <div class="container">
+        <div class="logo">KAWAN <span>Bot</span></div>
+        <div class="subtitle">Scan QR Code untuk menghubungkan WhatsApp</div>
+
+        <div id="qr-container">
+            <img id="qr-image" src="" alt="QR Code" style="display: none;">
+            <div id="placeholder" style="color: #999; font-size: 14px;">Memuat QR Code...</div>
+        </div>
+
+        <div id="status" class="status-waiting">Menunggu QR Code...</div>
+
+        <div class="step-info">
+            <ol>
+                <li>Buka WhatsApp di ponsel Anda</li>
+                <li>Ketuk <strong>Titik Tiga</strong> &rarr; <strong>Perangkat Tertaut</strong></li>
+                <li>Ketuk <strong>Tautkan Perangkat</strong></li>
+                <li>Arahkan kamera ke QR Code di atas</li>
+            </ol>
+        </div>
+
+        <button class="btn-restart" id="btn-restart" style="display: none;">Mulai Ulang Sesinya</button>
+
+        <div class="session-info" id="session-info">Sesi: default</div>
     </div>
-    <div id="status" class="status waiting">Waiting for QR Code...</div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-        const sessionId = 'default-session';
+        const sessionId = 'default';
+        const qrImage = document.getElementById('qr-image');
+        const statusEl = document.getElementById('status');
+        const placeholder = document.getElementById('placeholder');
+        const qrContainer = document.getElementById('qr-container');
+        const btnRestart = document.getElementById('btn-restart');
+
+        function setStatus(text, className) {
+            statusEl.textContent = text;
+            statusEl.className = className;
+        }
+
+        function showQR(url) {
+            qrImage.src = url;
+            qrImage.style.display = 'block';
+            placeholder.style.display = 'none';
+            qrContainer.classList.add('has-qr');
+            setStatus('Scan QR Code dengan WhatsApp Anda', 'status-scan');
+        }
+
+        function hideQR() {
+            qrImage.style.display = 'none';
+            placeholder.style.display = 'block';
+            placeholder.textContent = 'Terhubung...';
+            qrContainer.classList.remove('has-qr');
+        }
 
         socket.emit('create-session', sessionId);
 
         socket.on('qr', ({ url }) => {
-            document.getElementById('qr-image').src = url;
-            document.getElementById('qr-image').style.display = 'block';
-            document.getElementById('status').textContent = 'Scan QR Code to connect';
-            document.getElementById('status').className = 'status waiting';
+            showQR(url);
+            btnRestart.style.display = 'none';
         });
 
         socket.on('ready', () => {
-            document.getElementById('qr-image').style.display = 'none';
-            document.getElementById('status').textContent = 'WhatsApp Connected!';
-            document.getElementById('status').className = 'status connected';
+            hideQR();
+            setStatus('WhatsApp Terhubung! Bot siap digunakan.', 'status-ready');
+            placeholder.textContent = 'Terhubung';
+            btnRestart.style.display = 'block';
+            btnRestart.textContent = 'Putuskan Sesi';
+        });
+
+        socket.on('authenticated', () => {
+            setStatus('Telah diautentikasi, menyambungkan...', 'status-authenticated');
+        });
+
+        socket.on('auth_failure', ({ message }) => {
+            setStatus('Gagal autentikasi: ' + (message || 'unknown error'), 'status-error');
+            btnRestart.style.display = 'block';
+            btnRestart.textContent = 'Mulai Ulang Sesinya';
+        });
+
+        socket.on('disconnected', ({ reason }) => {
+            setStatus('Terputus: ' + (reason || 'unknown'), 'status-disconnected');
+            qrImage.style.display = 'none';
+            placeholder.style.display = 'block';
+            placeholder.textContent = 'Memuat ulang QR Code...';
+            qrContainer.classList.remove('has-qr');
+            btnRestart.style.display = 'block';
+            btnRestart.textContent = 'Mulai Ulang Sesinya';
+        });
+
+        btnRestart.addEventListener('click', () => {
+            placeholder.textContent = 'Memutuskan sesi...';
+            setStatus('Memutuskan sesi...', 'status-waiting');
+            btnRestart.disabled = true;
+            btnRestart.textContent = 'Memproses...';
+            hideQR();
+            socket.emit('disconnect-session', sessionId);
+        });
+
+        socket.on('session-destroyed', () => {
+            placeholder.textContent = 'Sesi dihapus, memuat QR Code baru...';
+            setStatus('Sesi berhasil diputus. Menyiapkan QR Code baru...', 'status-waiting');
+            btnRestart.disabled = false;
+            btnRestart.style.display = 'none';
+            setTimeout(() => {
+                socket.emit('create-session', sessionId);
+            }, 500);
         });
     </script>
 </body>

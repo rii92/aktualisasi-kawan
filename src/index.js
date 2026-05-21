@@ -29,7 +29,7 @@ const client = new Client({
         "--disable-gpu",
         "--disable-popup-blocking",
       ],
-      executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
       dumpio: true,
     },
     // webVersionCache sementara dinonaktifkan untuk debugging/auth flow
