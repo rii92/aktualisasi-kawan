@@ -1,0 +1,11 @@
+services:
+  kawan-bot:
+    build: .
+    container_name: kawan-bot
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    volumes:
+      - .wwebjs_auth:/app/.wwebjs_auth
+    restart: unless-stopped
