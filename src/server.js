@@ -476,51 +476,21 @@ const saveMessage = async (message) => {
           await chat.sendStateTyping();
           const checkResponse = await axios.get(`${API}?action=readDBSLS`);
           const records = checkResponse.data.records;
-          const userRecords = records.filter((record) => String(record.noHPMitra) === String(number));
+          const userRecords = records.filter((record) => String(record.noHPMitra) === String(number) || String(record.noHpPml) === String(number) );
           if (userRecords.length === 0) {
             await client.sendMessage(`${number}@c.us`, "anda tidak punya wewenang");
             return;
           }
           let listMessage = "*Daftar SLS Anda:*\n\n";
           userRecords.forEach((record, index) => {
-            listMessage += `${index + 1}. ${record.kodeSLS} - ${record.nmsls}\n`;
+            const isPML = String(record.noHpPml) === String(number);
+            const role = isPML ? "PML" : "PPL";
+            listMessage += `${index + 1}. ${record.kodeSLS} - ${record.nmsls} (${role})\n`;
           });
           listMessage += `\nTotal SLS: ${userRecords.length}.\n\nFormat UPDATE:\n- PML: #UPDATE_{kodesls}_{jumlah Approve}_PML_{jumlah Reject}\n- PPL: #UPDATE_{kodesls}_{jumlah selesai lapangan}_PPL_{jumlah Submit}_{Status SLS}\n\nContoh:\n- #UPDATE_SLS001_10_PML_5\n- #UPDATE_SLS001_10_PPL_5_Selesai`;
           await client.sendMessage(`${number}@c.us`, listMessage);
         } catch (error) {
           console.error("Error processing CHECKSLS command:", error);
-          await client.sendMessage(`${number}@c.us`, "gagal mengambil data sls");
-        }
-        return;
-      }
-
-      if (isiPesan.trim().toUpperCase() === "#CHECKSLSPML") {
-        try {
-          const chat = await message.getChat();
-          await chat.sendSeen();
-          await chat.sendStateTyping();
-
-          const checkResponse = await axios.get(`${API}?action=readDBSLS`);
-          const records = checkResponse.data.records;
-          const userRecords = records.filter(
-            (record) => String(record.noHpPml) === String(number)
-          );
-
-          if (userRecords.length === 0) {
-            await client.sendMessage(`${number}@c.us`, "anda tidak punya wewenang");
-            return;
-          }
-
-          let listMessage = "*Daftar SLS Anda:*\n\n";
-          userRecords.forEach((record, index) => {
-            listMessage += `${index + 1}. ${record.kodeSLS} - ${record.nmsls}\n`;
-          });
-
-          listMessage += `\nTotal SLS: ${userRecords.length}.\n\nFormat UPDATE:\n- PML: #UPDATE_{kodesls}_{jumlah Approve}_PML_{jumlah Reject}\n- PPL: #UPDATE_{kodesls}_{jumlah selesai lapangan}_PPL_{jumlah Submit}_{Status SLS}\n\nContoh:\n- #UPDATE_SLS001_10_PML_5\n- #UPDATE_SLS001_10_PPL_5_Selesai`;
-
-          await client.sendMessage(`${number}@c.us`, listMessage);
-        } catch (error) {
-          console.error("Error processing CHECKSLSPML command:", error);
           await client.sendMessage(`${number}@c.us`, "gagal mengambil data sls");
         }
         return;
