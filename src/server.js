@@ -481,18 +481,20 @@ const saveMessage = async (message) => {
             await client.sendMessage(`${number}@c.us`, "anda tidak punya wewenang");
             return;
           }
+          const val = (v) => (v === "-" || v == null ? 0 : v);
           let listMessage = "*Daftar SLS Anda:*\n\n";
           userRecords.forEach((record, index) => {
             const isPML = String(record.noHpPml) === String(number);
             const role = isPML ? "PML" : "PPL";
             listMessage += `${index + 1}. ${record.kodeSLS} - ${record.nmsls} (${role})\n`;
             if (isPML) {
-              listMessage += `   ├ Approve: ${record.JumlahApproved || 0}\n`;
-              listMessage += `   └ Reject: ${record.JumlahReject || 0}\n`;
+              listMessage += `   ├ Approve: ${val(record.JumlahApproved)}\n`;
+              listMessage += `   └ Reject: ${val(record.JumlahReject)}\n`;
             } else {
-              listMessage += `   ├ Selesai Lapangan: ${record.jumlahSelesaiLapangan || 0}\n`;
-              listMessage += `   ├ Submit: ${record.jumlahSubmit || 0}\n`;
-              listMessage += `   └ Status: ${record.statusSls || "-"}\n`;
+              listMessage += `   ├ Selesai Lapangan: ${val(record.jumlahSelesaiLapangan)}\n`;
+              listMessage += `   ├ Submit: ${val(record.jumlahSubmit)}\n`;
+              const st = record.statusSls;
+              listMessage += `   └ Status: ${!st || st === "-" ? "Belum" : st}\n`;
             }
           });
           listMessage += `\nTotal SLS: ${userRecords.length}.\n\nFormat UPDATE:\n- PML: #UPDATE_{kodesls}_{jumlah Approve}_PML_{jumlah Reject}\n- PPL: #UPDATE_{kodesls}_{jumlah selesai lapangan}_PPL_{jumlah Submit}_{Status SLS}\n\nContoh:\n- #UPDATE_61************_10_PML_5\n- #UPDATE_61************_10_PPL_5_Selesai (untuk progress sudah selesai)\n- #UPDATE_61************_10_PPL_5_Belum (untuk progress belum selesai)`;
