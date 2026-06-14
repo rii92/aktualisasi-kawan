@@ -486,8 +486,16 @@ const saveMessage = async (message) => {
             const isPML = String(record.noHpPml) === String(number);
             const role = isPML ? "PML" : "PPL";
             listMessage += `${index + 1}. ${record.kodeSLS} - ${record.nmsls} (${role})\n`;
+            if (isPML) {
+              listMessage += `   ├ Approve: ${record.JumlahApproved || 0}\n`;
+              listMessage += `   └ Reject: ${record.JumlahReject || 0}\n`;
+            } else {
+              listMessage += `   ├ Selesai Lapangan: ${record.jumlahSelesaiLapangan || 0}\n`;
+              listMessage += `   ├ Submit: ${record.jumlahSubmit || 0}\n`;
+              listMessage += `   └ Status: ${record.statusSls || "-"}\n`;
+            }
           });
-          listMessage += `\nTotal SLS: ${userRecords.length}.\n\nFormat UPDATE:\n- PML: #UPDATE_{kodesls}_{jumlah Approve}_PML_{jumlah Reject}\n- PPL: #UPDATE_{kodesls}_{jumlah selesai lapangan}_PPL_{jumlah Submit}_{Status SLS}\n\nContoh:\n- #UPDATE_SLS001_10_PML_5\n- #UPDATE_SLS001_10_PPL_5_Selesai`;
+          listMessage += `\nTotal SLS: ${userRecords.length}.\n\nFormat UPDATE:\n- PML: #UPDATE_{kodesls}_{jumlah Approve}_PML_{jumlah Reject}\n- PPL: #UPDATE_{kodesls}_{jumlah selesai lapangan}_PPL_{jumlah Submit}_{Status SLS}\n\nContoh:\n- #UPDATE_61************_10_PML_5\n- #UPDATE_61************_10_PPL_5_Selesai (untuk progress sudah selesai)\n- #UPDATE_61************_10_PPL_5_Belum (untuk progress belum selesai)`;
           await client.sendMessage(`${number}@c.us`, listMessage);
         } catch (error) {
           console.error("Error processing CHECKSLS command:", error);
