@@ -474,8 +474,11 @@ const saveMessage = async (message) => {
           const chat = await message.getChat();
           await chat.sendSeen();
           await chat.sendStateTyping();
+          console.log("Fetching SLS data from API...");
           const checkResponse = await axios.get(`${API}?action=readDBSLS`);
+          console.log("API response status:", checkResponse.status);
           const records = checkResponse.data.records;
+          console.log("Total records from API:", records?.length);
           const userRecords = records.filter((record) => String(record.noHPMitra) === String(number) || String(record.noHpPml) === String(number) );
           if (userRecords.length === 0) {
             await client.sendMessage(`${number}@c.us`, "anda tidak punya wewenang");
@@ -497,7 +500,7 @@ const saveMessage = async (message) => {
           listMessage += `\nTotal SLS: ${userRecords.length}.\n\nFormat UPDATE:\n- PML: #UPDATE_{kodesls}_{jumlah Approve}_PML_{jumlah Reject}\n- PPL: #UPDATE_{kodesls}_{jumlah selesai lapangan}_PPL_{jumlah Submit}_{Status SLS}\n\nContoh:\n- #UPDATE_61************_10_PML_5\n- #UPDATE_61************_10_PPL_5_Selesai (untuk progress sudah selesai)\n- #UPDATE_61************_10_PPL_5_Belum (untuk progress belum selesai)`;
           await client.sendMessage(`${number}@c.us`, listMessage);
         } catch (error) {
-          console.error("Error processing CHECKSLS command:", error);
+          console.error("Error processing CHECKSLS command:", error.message, error.response?.status);
           await client.sendMessage(`${number}@c.us`, "gagal mengambil data sls");
         }
         return;
